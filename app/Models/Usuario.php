@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Notifications\Notifiable;
 
 class Usuario extends Authenticatable
@@ -37,6 +38,14 @@ class Usuario extends Authenticatable
     public function rol(): BelongsTo
     {
         return $this->belongsTo(Rol::class, 'id_rol');
+    }
+
+    /**
+     * Relación: Un usuario puede tener un docente
+     */
+    public function docente(): HasOne
+    {
+        return $this->hasOne(Docente::class, 'id_usuario', 'id');
     }
 
     /**

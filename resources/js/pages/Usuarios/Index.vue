@@ -1,98 +1,149 @@
 <template>
   <AppLayout title="Gestión de Usuarios">
-    <div class="space-y-6">
+    <div class="flex flex-col h-full space-y-4 lg:space-y-6">
     <!-- Header con botón de crear -->
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
       <div>
-        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Gestión de Usuarios</h2>
-        <p class="text-gray-600 dark:text-gray-400 mt-1">Administra los usuarios del sistema</p>
+        <h2 class="text-xl lg:text-2xl font-bold text-gray-800 dark:text-white">Gestión de Usuarios</h2>
+        <p class="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1">Administra los usuarios del sistema</p>
       </div>
       <Button
         label="Nuevo Usuario"
         icon="pi pi-plus"
         @click="openCreateDialog"
         severity="success"
+        class="w-full sm:w-auto"
       />
     </div>
 
-    <!-- Tabla de usuarios -->
-    <Card>
-      <template #content>
-        <DataTable
-          :value="usuarios"
-          :paginator="true"
-          :rows="10"
-          :rowsPerPageOptions="[5, 10, 20, 50]"
-          stripedRows
-          showGridlines
-          tableStyle="min-width: 50rem"
-        >
-          <Column field="id" header="ID" sortable style="width: 5%"></Column>
-          <Column field="username" header="Username" sortable style="width: 20%"></Column>
-          <Column field="email" header="Email" sortable style="width: 25%"></Column>
-          <Column field="rol.nombre" header="Rol" sortable style="width: 20%">
-            <template #body="slotProps">
-              <Tag :value="slotProps.data.rol?.nombre" :severity="getRolSeverity(slotProps.data.rol?.nombre)" />
-            </template>
-          </Column>
-          <Column header="Acciones" style="width: 15%">
-            <template #body="slotProps">
-              <div class="flex gap-2">
-                <Button
-                  icon="pi pi-pencil"
-                  @click="openEditDialog(slotProps.data)"
-                  severity="info"
-                  outlined
-                  size="small"
+    <!-- Tabla de usuarios con scroll -->
+    <div class="flex-1 overflow-hidden">
+      <Card class="h-full flex flex-col">
+        <template #content>
+          <div class="flex-1 overflow-auto">
+            <DataTable
+            :value="usuarios"
+            :paginator="true"
+            :rows="10"
+            :rowsPerPageOptions="[5, 10, 20, 50]"
+            stripedRows
+            showGridlines
+            responsiveLayout="scroll"
+            :breakpoint="'960px'"
+            class="text-xs sm:text-sm"
+          >
+            <Column 
+              field="id" 
+              header="ID" 
+              sortable 
+              :style="{ minWidth: '3rem' }"
+              headerClass="text-xs sm:text-sm"
+              bodyClass="text-xs sm:text-sm"
+            ></Column>
+            <Column 
+              field="username" 
+              header="Usuario" 
+              sortable 
+              :style="{ minWidth: '8rem' }"
+              headerClass="text-xs sm:text-sm"
+              bodyClass="text-xs sm:text-sm"
+            ></Column>
+            <Column 
+              field="email" 
+              header="Email" 
+              sortable 
+              :style="{ minWidth: '12rem' }"
+              headerClass="text-xs sm:text-sm"
+              bodyClass="text-xs sm:text-sm"
+              class="hidden sm:table-cell"
+            ></Column>
+            <Column 
+              field="rol.nombre" 
+              header="Rol" 
+              sortable 
+              :style="{ minWidth: '8rem' }"
+              headerClass="text-xs sm:text-sm"
+              bodyClass="text-xs sm:text-sm"
+            >
+              <template #body="slotProps">
+                <Tag 
+                  :value="slotProps.data.rol?.nombre" 
+                  :severity="getRolSeverity(slotProps.data.rol?.nombre)" 
+                  class="text-xs"
                 />
-                <Button
-                  icon="pi pi-trash"
-                  @click="confirmDelete(slotProps.data)"
-                  severity="danger"
-                  outlined
-                  size="small"
-                />
-              </div>
-            </template>
-          </Column>
-        </DataTable>
-      </template>
-    </Card>
+              </template>
+            </Column>
+            <Column 
+              header="Acciones" 
+              :style="{ minWidth: '8rem' }"
+              headerClass="text-xs sm:text-sm"
+              bodyClass="text-xs sm:text-sm"
+            >
+              <template #body="slotProps">
+                <div class="flex gap-1 sm:gap-2">
+                  <Button
+                    icon="pi pi-pencil"
+                    @click="openEditDialog(slotProps.data)"
+                    severity="info"
+                    outlined
+                    size="small"
+                    class="!p-1 sm:!p-2"
+                  />
+                  <Button
+                    icon="pi pi-trash"
+                    @click="confirmDelete(slotProps.data)"
+                    severity="danger"
+                    outlined
+                    size="small"
+                    class="!p-1 sm:!p-2"
+                  />
+                </div>
+              </template>
+            </Column>
+          </DataTable>
+          </div>
+        </template>
+      </Card>
+    </div>
+    </div>
 
     <!-- Dialog para Crear/Editar Usuario -->
     <Dialog
       v-model:visible="dialogVisible"
       :header="isEditing ? 'Editar Usuario' : 'Crear Usuario'"
       :modal="true"
-      :style="{ width: '500px' }"
+      class="w-[95vw] sm:w-[85vw] md:w-[600px] lg:w-[500px]"
+      :dismissableMask="true"
     >
-      <form @submit.prevent="submitForm" class="space-y-4 mt-4">
+      <form @submit.prevent="submitForm" class="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
         <div class="flex flex-col gap-2">
-          <label for="username" class="font-semibold">Username</label>
+          <label for="username" class="font-semibold text-sm">Username</label>
           <InputText
             id="username"
             v-model="form.username"
             :class="{ 'p-invalid': form.errors.username }"
             placeholder="Ingresa el username"
+            class="w-full text-sm"
           />
-          <small v-if="form.errors.username" class="text-red-500">{{ form.errors.username }}</small>
+          <small v-if="form.errors.username" class="text-red-500 text-xs">{{ form.errors.username }}</small>
         </div>
 
         <div class="flex flex-col gap-2">
-          <label for="email" class="font-semibold">Email</label>
+          <label for="email" class="font-semibold text-sm">Email</label>
           <InputText
             id="email"
             v-model="form.email"
             type="email"
             :class="{ 'p-invalid': form.errors.email }"
             placeholder="usuario@ejemplo.com"
+            class="w-full text-sm"
           />
-          <small v-if="form.errors.email" class="text-red-500">{{ form.errors.email }}</small>
+          <small v-if="form.errors.email" class="text-red-500 text-xs">{{ form.errors.email }}</small>
         </div>
 
         <div class="flex flex-col gap-2">
-          <label for="password" class="font-semibold">
-            Contraseña {{ isEditing ? '(dejar vacío para no cambiar)' : '' }}
+          <label for="password" class="font-semibold text-sm">
+            Contraseña {{ isEditing ? '(vacío = no cambiar)' : '' }}
           </label>
           <Password
             id="password"
@@ -101,12 +152,14 @@
             :feedback="false"
             toggleMask
             placeholder="Ingresa la contraseña"
+            class="w-full"
+            inputClass="w-full text-sm"
           />
-          <small v-if="form.errors.password" class="text-red-500">{{ form.errors.password }}</small>
+          <small v-if="form.errors.password" class="text-red-500 text-xs">{{ form.errors.password }}</small>
         </div>
 
         <div class="flex flex-col gap-2">
-          <label for="rol" class="font-semibold">Rol</label>
+          <label for="rol" class="font-semibold text-sm">Rol</label>
           <Select
             id="rol"
             v-model="form.id_rol"
@@ -115,23 +168,26 @@
             optionValue="id"
             placeholder="Selecciona un rol"
             :class="{ 'p-invalid': form.errors.id_rol }"
+            class="w-full text-sm"
           />
-          <small v-if="form.errors.id_rol" class="text-red-500">{{ form.errors.id_rol }}</small>
+          <small v-if="form.errors.id_rol" class="text-red-500 text-xs">{{ form.errors.id_rol }}</small>
         </div>
 
-        <div class="flex justify-end gap-2 mt-6">
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4 sm:mt-6">
           <Button
             label="Cancelar"
             @click="dialogVisible = false"
             severity="secondary"
             outlined
             type="button"
+            class="w-full sm:w-auto text-sm"
           />
           <Button
             :label="isEditing ? 'Actualizar' : 'Crear'"
             type="submit"
             :loading="form.processing"
             severity="success"
+            class="w-full sm:w-auto text-sm"
           />
         </div>
       </form>
@@ -142,28 +198,34 @@
       v-model:visible="deleteDialogVisible"
       header="Confirmar Eliminación"
       :modal="true"
-      :style="{ width: '400px' }"
+      class="w-[95vw] sm:w-[85vw] md:w-[500px] lg:w-[400px]"
+      :dismissableMask="true"
     >
-      <div class="flex items-center gap-3">
-        <i class="pi pi-exclamation-triangle text-red-500 text-3xl"></i>
-        <span>¿Estás seguro de que deseas eliminar al usuario <strong>{{ usuarioToDelete?.username }}</strong>?</span>
+      <div class="flex items-start sm:items-center gap-3 p-2">
+        <i class="pi pi-exclamation-triangle text-red-500 text-2xl sm:text-3xl flex-shrink-0"></i>
+        <span class="text-sm sm:text-base">
+          ¿Estás seguro de que deseas eliminar al usuario <strong>{{ usuarioToDelete?.username }}</strong>?
+        </span>
       </div>
       <template #footer>
-        <Button
-          label="Cancelar"
-          @click="deleteDialogVisible = false"
-          severity="secondary"
-          outlined
-        />
-        <Button
-          label="Eliminar"
-          @click="deleteUsuario"
-          severity="danger"
-          :loading="deleteForm.processing"
-        />
+        <div class="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
+          <Button
+            label="Cancelar"
+            @click="deleteDialogVisible = false"
+            severity="secondary"
+            outlined
+            class="w-full sm:w-auto text-sm"
+          />
+          <Button
+            label="Eliminar"
+            @click="deleteUsuario"
+            severity="danger"
+            :loading="deleteForm.processing"
+            class="w-full sm:w-auto text-sm"
+          />
+        </div>
       </template>
     </Dialog>
-  </div>
   </AppLayout>
 </template>
 

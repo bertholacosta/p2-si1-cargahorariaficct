@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\DocenteController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -48,4 +49,5 @@ Route::post('/logout', function () {
 // Rutas protegidas
 Route::middleware('auth')->group(function () {
     Route::resource('usuarios', UsuarioController::class)->except(['show', 'create', 'edit']);
+    Route::resource('docentes', DocenteController::class)->except(['show', 'create', 'edit']);
 });

@@ -1,7 +1,20 @@
 <template>
   <div class="min-h-screen flex bg-gray-100 dark:bg-gray-900">
+    <!-- Overlay para móvil -->
+    <div
+      v-if="sidebarOpen && isMobile"
+      @click="closeSidebar"
+      class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+    ></div>
+
     <!-- Sidebar -->
-    <aside :class="['bg-white dark:bg-gray-800 shadow-lg transition-all duration-300', sidebarOpen ? 'w-64' : 'w-20']">
+    <aside
+      :class="[
+        'bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 z-50',
+        'fixed lg:relative inset-y-0 left-0',
+        sidebarOpen ? 'w-64 translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-20'
+      ]"
+    >
       <div class="flex flex-col h-full">
         <!-- Logo/Header -->
         <div class="h-16 flex items-center justify-between px-4 border-b dark:border-gray-700">
@@ -18,7 +31,7 @@
         </div>
 
         <!-- Menu Items -->
-        <nav class="flex-1 px-2 py-4 space-y-2">
+        <nav class="flex-1 px-2 py-4 space-y-2 overflow-y-auto">
           <a
             v-for="item in menuItems"
             :key="item.label"
@@ -39,10 +52,10 @@
         <!-- User Info -->
         <div class="border-t dark:border-gray-700 p-4">
           <div v-if="sidebarOpen" class="space-y-2">
-            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
               {{ user.username }}
             </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">
+            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
               {{ user.rol?.nombre }}
             </p>
             <Button
@@ -69,64 +82,79 @@
     </aside>
 
     <!-- Main Content -->
-    <div class="flex-1 flex flex-col">
+    <div class="flex-1 flex flex-col min-w-0">
       <!-- Top Navbar -->
-      <nav class="bg-white dark:bg-gray-800 shadow-sm h-16 flex items-center px-6">
-        <h2 class="text-xl font-semibold text-gray-800 dark:text-white">
+      <nav class="bg-white dark:bg-gray-800 shadow-sm h-16 flex items-center px-4 lg:px-6">
+        <!-- Botón menú móvil -->
+        <Button
+          icon="pi pi-bars"
+          @click="openSidebar"
+          text
+          rounded
+          class="lg:hidden mr-3 text-gray-600 dark:text-gray-300"
+        />
+        <h2 class="text-lg lg:text-xl font-semibold text-gray-800 dark:text-white truncate">
           {{ currentViewTitle }}
         </h2>
       </nav>
 
       <!-- Content Area -->
-      <main class="flex-1 p-6 overflow-y-auto">
+      <main class="flex-1 flex flex-col p-4 lg:p-6 overflow-hidden">
         <!-- Dashboard Home -->
-        <div class="space-y-6">
+        <div class="flex flex-col h-full space-y-4 lg:space-y-6">
           <!-- Card de Bienvenida -->
-          <Card>
+          <Card class="shrink-0">
             <template #title>
               <div class="flex items-center gap-2">
-                <i class="pi pi-user text-blue-500"></i>
-                Bienvenido, {{ user.username }}!
+                <i class="pi pi-user text-blue-500 text-lg sm:text-xl"></i>
+                <span class="text-base sm:text-lg lg:text-xl">Bienvenido, {{ user.username }}!</span>
               </div>
             </template>
             <template #content>
-              <p class="text-gray-600 dark:text-gray-400">
+              <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400">
                 Has iniciado sesión exitosamente en el sistema de gestión de horarios de la FICCT.
               </p>
             </template>
           </Card>
 
-          <!-- Grid de Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Grid de Cards con scroll -->
+          <div class="flex-1 overflow-y-auto">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 pb-4">
             <!-- Card de Información -->
-            <Card>
+            <Card class="h-full">
               <template #title>
                 <div class="flex items-center gap-2">
-                  <i class="pi pi-info-circle text-blue-500"></i>
-                  Información de Usuario
+                  <i class="pi pi-info-circle text-blue-500 text-base sm:text-lg"></i>
+                  <span class="text-sm sm:text-base">Información de Usuario</span>
                 </div>
               </template>
               <template #content>
                 <div class="space-y-2">
-                  <p class="text-sm"><strong>Email:</strong> {{ user.email }}</p>
-                  <p class="text-sm"><strong>Rol:</strong> {{ user.rol?.nombre }}</p>
-                  <p class="text-sm"><strong>Username:</strong> {{ user.username }}</p>
+                  <p class="text-xs sm:text-sm break-words">
+                    <strong>Email:</strong> {{ user.email }}
+                  </p>
+                  <p class="text-xs sm:text-sm">
+                    <strong>Rol:</strong> {{ user.rol?.nombre }}
+                  </p>
+                  <p class="text-xs sm:text-sm">
+                    <strong>Username:</strong> {{ user.username }}
+                  </p>
                 </div>
               </template>
             </Card>
 
             <!-- Card de Permisos -->
-            <Card>
+            <Card class="h-full">
               <template #title>
                 <div class="flex items-center gap-2">
-                  <i class="pi pi-shield text-green-500"></i>
-                  Permisos
+                  <i class="pi pi-shield text-green-500 text-base sm:text-lg"></i>
+                  <span class="text-sm sm:text-base">Permisos</span>
                 </div>
               </template>
               <template #content>
                 <div class="space-y-1 max-h-40 overflow-y-auto">
-                  <p v-for="permiso in user.rol?.permisos" :key="permiso.id" class="text-sm">
-                    <i class="pi pi-check text-green-500 mr-2"></i>
+                  <p v-for="permiso in user.rol?.permisos" :key="permiso.id" class="text-xs sm:text-sm">
+                    <i class="pi pi-check text-green-500 mr-2 text-xs"></i>
                     {{ permiso.nombre }}
                   </p>
                 </div>
@@ -134,27 +162,28 @@
             </Card>
 
             <!-- Card de Estadísticas -->
-            <Card>
+            <Card class="h-full sm:col-span-2 lg:col-span-1">
               <template #title>
                 <div class="flex items-center gap-2">
-                  <i class="pi pi-chart-bar text-purple-500"></i>
-                  Estadísticas
+                  <i class="pi pi-chart-bar text-purple-500 text-base sm:text-lg"></i>
+                  <span class="text-sm sm:text-base">Estadísticas</span>
                 </div>
               </template>
               <template #content>
                 <div class="space-y-3">
                   <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-400">Horarios Activos</span>
-                    <span class="text-lg font-bold text-blue-500">12</span>
+                    <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Horarios Activos</span>
+                    <span class="text-lg sm:text-xl font-bold text-blue-500">12</span>
                   </div>
                   <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-400">Usuarios</span>
-                    <span class="text-lg font-bold text-green-500">45</span>
+                    <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Usuarios</span>
+                    <span class="text-lg sm:text-xl font-bold text-green-500">45</span>
                   </div>
                 </div>
               </template>
             </Card>
           </div>
+            </div>
         </div>
       </main>
     </div>
@@ -162,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
@@ -189,7 +218,8 @@ const props = defineProps<{
   user: User;
 }>();
 
-const sidebarOpen = ref(true);
+const sidebarOpen = ref(false);
+const isMobile = ref(false);
 const currentRoute = ref('/');
 
 const menuItems = [
@@ -205,8 +235,27 @@ const currentViewTitle = computed(() => {
   return item?.label || 'Dashboard';
 });
 
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 1024;
+  if (!isMobile.value) {
+    sidebarOpen.value = true;
+  } else {
+    sidebarOpen.value = false;
+  }
+};
+
 const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value;
+};
+
+const openSidebar = () => {
+  sidebarOpen.value = true;
+};
+
+const closeSidebar = () => {
+  if (isMobile.value) {
+    sidebarOpen.value = false;
+  }
 };
 
 const navigateTo = (route: string) => {
@@ -215,13 +264,19 @@ const navigateTo = (route: string) => {
   } else {
     router.visit(route);
   }
+  closeSidebar();
 };
 
 const logout = () => {
   router.post('/logout');
 };
 
-const visitUsuarios = () => {
-  router.visit('/usuarios');
-};
+onMounted(() => {
+  checkMobile();
+  window.addEventListener('resize', checkMobile);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile);
+});
 </script>
