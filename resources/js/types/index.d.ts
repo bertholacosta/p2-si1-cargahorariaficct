@@ -8,12 +8,24 @@ export type AppPageProps<T extends Record<string, unknown> = Record<string, unkn
     auth: Auth;
 };
 
+export interface Rol {
+    id: number;
+    nombre: string;
+    permisos?: Permiso[];
+}
+
+export interface Permiso {
+    id: number;
+    nombre: string;
+}
+
 export interface User {
     id: number;
-    name: string;
+    username: string;
     email: string;
-    avatar?: string;
-    email_verified_at: string | null;
-    created_at: string;
-    updated_at: string;
+    id_rol?: number;
+    rol?: Rol;
+    email_verified_at?: string | null;
+    created_at?: string;
+    updated_at?: string;
 }

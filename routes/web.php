@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -43,3 +44,8 @@ Route::post('/logout', function () {
     request()->session()->regenerateToken();
     return redirect('/login');
 })->name('logout');
+
+// Rutas protegidas
+Route::middleware('auth')->group(function () {
+    Route::resource('usuarios', UsuarioController::class)->except(['show', 'create', 'edit']);
+});

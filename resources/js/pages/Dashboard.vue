@@ -22,11 +22,11 @@
           <a
             v-for="item in menuItems"
             :key="item.label"
-            href="#"
-            @click.prevent="currentView = item.view"
+            :href="item.route"
+            @click.prevent="navigateTo(item.route)"
             :class="[
-              'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
-              currentView === item.view
+              'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer',
+              currentRoute === item.route
                 ? 'bg-blue-500 text-white'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             ]"
@@ -80,7 +80,7 @@
       <!-- Content Area -->
       <main class="flex-1 p-6 overflow-y-auto">
         <!-- Dashboard Home -->
-        <div v-if="currentView === 'home'" class="space-y-6">
+        <div class="space-y-6">
           <!-- Card de Bienvenida -->
           <Card>
             <template #title>
@@ -156,54 +156,6 @@
             </Card>
           </div>
         </div>
-
-        <!-- Horarios View -->
-        <div v-if="currentView === 'horarios'">
-          <Card>
-            <template #title>Gestión de Horarios</template>
-            <template #content>
-              <p class="text-gray-600 dark:text-gray-400">
-                Aquí puedes gestionar los horarios académicos.
-              </p>
-            </template>
-          </Card>
-        </div>
-
-        <!-- Usuarios View -->
-        <div v-if="currentView === 'usuarios'">
-          <Card>
-            <template #title>Gestión de Usuarios</template>
-            <template #content>
-              <p class="text-gray-600 dark:text-gray-400">
-                Aquí puedes gestionar los usuarios del sistema.
-              </p>
-            </template>
-          </Card>
-        </div>
-
-        <!-- Reportes View -->
-        <div v-if="currentView === 'reportes'">
-          <Card>
-            <template #title>Reportes</template>
-            <template #content>
-              <p class="text-gray-600 dark:text-gray-400">
-                Aquí puedes generar y visualizar reportes.
-              </p>
-            </template>
-          </Card>
-        </div>
-
-        <!-- Configuración View -->
-        <div v-if="currentView === 'configuracion'">
-          <Card>
-            <template #title>Configuración</template>
-            <template #content>
-              <p class="text-gray-600 dark:text-gray-400">
-                Aquí puedes ajustar las configuraciones del sistema.
-              </p>
-            </template>
-          </Card>
-        </div>
       </main>
     </div>
   </div>
@@ -238,18 +190,18 @@ const props = defineProps<{
 }>();
 
 const sidebarOpen = ref(true);
-const currentView = ref('home');
+const currentRoute = ref('/');
 
 const menuItems = [
-  { label: 'Inicio', icon: 'pi pi-home', view: 'home' },
-  { label: 'Horarios', icon: 'pi pi-calendar', view: 'horarios' },
-  { label: 'Usuarios', icon: 'pi pi-users', view: 'usuarios' },
-  { label: 'Reportes', icon: 'pi pi-chart-bar', view: 'reportes' },
-  { label: 'Configuración', icon: 'pi pi-cog', view: 'configuracion' },
+  { label: 'Inicio', icon: 'pi pi-home', route: '/' },
+  { label: 'Horarios', icon: 'pi pi-calendar', route: '/horarios' },
+  { label: 'Usuarios', icon: 'pi pi-users', route: '/usuarios' },
+  { label: 'Reportes', icon: 'pi pi-chart-bar', route: '/reportes' },
+  { label: 'Configuración', icon: 'pi pi-cog', route: '/configuracion' },
 ];
 
 const currentViewTitle = computed(() => {
-  const item = menuItems.find(i => i.view === currentView.value);
+  const item = menuItems.find(i => i.route === currentRoute.value);
   return item?.label || 'Dashboard';
 });
 
@@ -257,7 +209,19 @@ const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value;
 };
 
+const navigateTo = (route: string) => {
+  if (route === '/') {
+    currentRoute.value = route;
+  } else {
+    router.visit(route);
+  }
+};
+
 const logout = () => {
   router.post('/logout');
+};
+
+const visitUsuarios = () => {
+  router.visit('/usuarios');
 };
 </script>
