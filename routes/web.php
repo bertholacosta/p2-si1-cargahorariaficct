@@ -9,6 +9,9 @@ use App\Http\Controllers\GrupoMateriaController;
 use App\Http\Controllers\ModuloController;
 use App\Http\Controllers\AulaController;
 use App\Http\Controllers\GestionController;
+use App\Http\Controllers\DiaController;
+use App\Http\Controllers\HoraController;
+use App\Http\Controllers\HorarioController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -62,6 +65,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('modulos', ModuloController::class)->except(['show', 'create', 'edit']);
     Route::resource('aulas', AulaController::class)->except(['show', 'create', 'edit']);
     Route::resource('gestiones', GestionController::class)->except(['show', 'create', 'edit']);
+    Route::resource('dias', DiaController::class)->except(['show', 'create', 'edit']);
+    Route::resource('horas', HoraController::class)->except(['show', 'create', 'edit']);
+    Route::resource('horarios', HorarioController::class)->except(['show', 'create', 'edit']);
     
     // Materias habilitadas por docente
     Route::get('/docentes/{codigo}/materias-habilitadas', [MateriaHabilitadaController::class, 'index'])

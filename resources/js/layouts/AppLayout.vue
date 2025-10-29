@@ -125,7 +125,9 @@ const isMobile = ref(false);
 const menuItems = [
   { label: 'Inicio', icon: 'pi pi-home', route: '/' },
   { label: 'Horarios', icon: 'pi pi-calendar', route: '/horarios' },
-  { label: 'Gestiones', icon: 'pi pi-clock', route: '/gestiones' },
+  { label: 'Días', icon: 'pi pi-sun', route: '/dias' },
+  { label: 'Bloques Horarios', icon: 'pi pi-clock', route: '/horas' },
+  { label: 'Gestiones', icon: 'pi pi-history', route: '/gestiones' },
   { label: 'Docentes', icon: 'pi pi-id-card', route: '/docentes' },
   { label: 'Materias', icon: 'pi pi-book', route: '/materias' },
   { label: 'Grupos', icon: 'pi pi-users', route: '/grupos' },
