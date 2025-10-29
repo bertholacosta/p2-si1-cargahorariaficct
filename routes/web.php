@@ -12,6 +12,7 @@ use App\Http\Controllers\GestionController;
 use App\Http\Controllers\DiaController;
 use App\Http\Controllers\HoraController;
 use App\Http\Controllers\HorarioController;
+use App\Http\Controllers\AsignacionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -68,6 +69,13 @@ Route::middleware('auth')->group(function () {
     Route::resource('dias', DiaController::class)->except(['show', 'create', 'edit']);
     Route::resource('horas', HoraController::class)->except(['show', 'create', 'edit']);
     Route::resource('horarios', HorarioController::class)->except(['show', 'create', 'edit']);
+    Route::resource('asignaciones', AsignacionController::class)->except(['show', 'create', 'edit', 'update']);
+    
+    // Rutas adicionales para asignaciones
+    Route::get('/asignaciones/docente/{codigo}', [AsignacionController::class, 'horarioDocente'])
+        ->name('asignaciones.docente');
+    Route::get('/asignaciones/aula/{id}', [AsignacionController::class, 'horarioAula'])
+        ->name('asignaciones.aula');
     
     // Materias habilitadas por docente
     Route::get('/docentes/{codigo}/materias-habilitadas', [MateriaHabilitadaController::class, 'index'])
