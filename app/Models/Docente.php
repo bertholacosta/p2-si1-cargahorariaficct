@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Docente extends Model
 {
@@ -26,6 +27,21 @@ class Docente extends Model
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(Usuario::class, 'id_usuario', 'id');
+    }
+
+    /**
+     * Relación con Materias habilitadas
+     */
+    public function materias(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Materia::class,
+            'materia_habilitada',
+            'id_docente',
+            'id_materia',
+            'codigo',
+            'id'
+        )->withTimestamps();
     }
 
     /**

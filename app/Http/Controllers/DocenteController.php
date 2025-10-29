@@ -15,7 +15,7 @@ class DocenteController extends Controller
      */
     public function index()
     {
-        $docentes = Docente::with('usuario')->get();
+        $docentes = Docente::with(['usuario', 'materias'])->get();
         $usuarios = Usuario::whereDoesntHave('docente')->get();
 
         return Inertia::render('Docentes/Index', [

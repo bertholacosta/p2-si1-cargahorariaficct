@@ -1,14 +1,14 @@
 <template>
-  <AppLayout title="Gestión de Docentes">
+  <AppLayout title="Gestión de Materias">
     <div class="flex flex-col h-full space-y-4 lg:space-y-6">
     <!-- Header con botón de crear -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
       <div>
-        <h2 class="text-xl lg:text-2xl font-bold text-gray-800 dark:text-white">Gestión de Docentes</h2>
-        <p class="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1">Administra los docentes del sistema</p>
+        <h2 class="text-xl lg:text-2xl font-bold text-gray-800 dark:text-white">Gestión de Materias</h2>
+        <p class="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1">Administra las materias del sistema</p>
       </div>
       <Button
-        label="Nuevo Docente"
+        label="Nueva Materia"
         icon="pi pi-plus"
         @click="openCreateDialog"
         severity="success"
@@ -16,13 +16,13 @@
       />
     </div>
 
-    <!-- Tabla de docentes con scroll -->
+    <!-- Tabla de materias con scroll -->
     <div class="flex-1 overflow-hidden">
       <Card class="h-full flex flex-col">
         <template #content>
           <div class="flex-1 overflow-auto">
             <DataTable
-              :value="docentes"
+              :value="materias"
               :paginator="true"
               :rows="10"
               :rowsPerPageOptions="[5, 10, 20, 50]"
@@ -33,74 +33,79 @@
               class="text-xs sm:text-sm"
             >
               <Column 
-                field="codigo" 
-                header="Código" 
+                field="id" 
+                header="ID" 
+                sortable 
+                :style="{ minWidth: '4rem' }"
+                headerClass="text-xs sm:text-sm"
+                bodyClass="text-xs sm:text-sm"
+              ></Column>
+              <Column 
+                field="sigla" 
+                header="Sigla" 
                 sortable 
                 :style="{ minWidth: '8rem' }"
                 headerClass="text-xs sm:text-sm"
                 bodyClass="text-xs sm:text-sm"
-              ></Column>
+              >
+                <template #body="slotProps">
+                  <Tag 
+                    :value="slotProps.data.sigla" 
+                    severity="info"
+                    class="text-xs font-mono"
+                  />
+                </template>
+              </Column>
               <Column 
                 field="nombre" 
                 header="Nombre" 
                 sortable 
-                :style="{ minWidth: '10rem' }"
+                :style="{ minWidth: '15rem' }"
                 headerClass="text-xs sm:text-sm"
                 bodyClass="text-xs sm:text-sm"
               ></Column>
               <Column 
-                field="apellidos" 
-                header="Apellidos" 
-                sortable 
-                :style="{ minWidth: '10rem' }"
-                headerClass="text-xs sm:text-sm"
-                bodyClass="text-xs sm:text-sm"
-                class="hidden sm:table-cell"
-              ></Column>
-              <Column 
-                field="ci" 
-                header="CI" 
+                field="carga_horaria" 
+                header="Carga Horaria" 
                 sortable 
                 :style="{ minWidth: '8rem' }"
                 headerClass="text-xs sm:text-sm"
                 bodyClass="text-xs sm:text-sm"
-              ></Column>
+                class="hidden sm:table-cell"
+              >
+                <template #body="slotProps">
+                  <span class="text-xs sm:text-sm">
+                    {{ slotProps.data.carga_horaria ? `${slotProps.data.carga_horaria} hrs` : '-' }}
+                  </span>
+                </template>
+              </Column>
               <Column 
-                field="usuario.username" 
-                header="Usuario" 
+                field="creditos" 
+                header="Créditos" 
                 sortable 
-                :style="{ minWidth: '10rem' }"
+                :style="{ minWidth: '6rem' }"
                 headerClass="text-xs sm:text-sm"
                 bodyClass="text-xs sm:text-sm"
                 class="hidden md:table-cell"
               >
                 <template #body="slotProps">
                   <Tag 
-                    v-if="slotProps.data.usuario"
-                    :value="slotProps.data.usuario.username" 
-                    severity="info"
+                    v-if="slotProps.data.creditos"
+                    :value="slotProps.data.creditos.toString()" 
+                    severity="success"
                     class="text-xs"
                   />
-                  <span v-else class="text-xs text-gray-400">Sin usuario</span>
+                  <span v-else class="text-xs text-gray-400">-</span>
                 </template>
               </Column>
               <Column 
                 header="Acciones" 
-                :style="{ minWidth: '10rem' }"
+                :style="{ minWidth: '8rem' }"
                 headerClass="text-xs sm:text-sm"
                 bodyClass="text-xs sm:text-sm"
               >
                 <template #body="slotProps">
                   <div class="flex gap-1 sm:gap-2">
-                    <Button
-                      icon="pi pi-book"
-                      @click="goToMaterias(slotProps.data.codigo)"
-                      severity="info"
-                      outlined
-                      size="small"
-                      class="!p-1 sm:!p-2"
-                      v-tooltip.top="'Materias'"
-                    />
                     <Button
                       icon="pi pi-pencil"
                       @click="openEditDialog(slotProps.data)"
@@ -108,7 +113,6 @@
                       outlined
                       size="small"
                       class="!p-1 sm:!p-2"
-                      v-tooltip.top="'Editar'"
                     />
                     <Button
                       icon="pi pi-trash"
@@ -117,7 +121,6 @@
                       outlined
                       size="small"
                       class="!p-1 sm:!p-2"
-                      v-tooltip.top="'Eliminar'"
                     />
                   </div>
                 </template>
@@ -129,26 +132,26 @@
     </div>
     </div>
 
-    <!-- Dialog para Crear/Editar Docente -->
+    <!-- Dialog para Crear/Editar Materia -->
     <Dialog
       v-model:visible="dialogVisible"
-      :header="isEditing ? 'Editar Docente' : 'Crear Docente'"
+      :header="isEditing ? 'Editar Materia' : 'Crear Materia'"
       :modal="true"
       class="w-[95vw] sm:w-[85vw] md:w-[600px] lg:w-[500px]"
       :dismissableMask="true"
     >
       <form @submit.prevent="submitForm" class="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
         <div class="flex flex-col gap-2">
-          <label for="codigo" class="font-semibold text-sm">Código</label>
+          <label for="sigla" class="font-semibold text-sm">Sigla</label>
           <InputText
-            id="codigo"
-            v-model="form.codigo"
-            :class="{ 'p-invalid': form.errors.codigo }"
-            placeholder="Ingresa el código del docente"
-            class="w-full text-sm"
-            :disabled="isEditing"
+            id="sigla"
+            v-model="form.sigla"
+            :class="{ 'p-invalid': form.errors.sigla }"
+            placeholder="Ej: MAT101"
+            class="w-full text-sm uppercase"
+            maxlength="10"
           />
-          <small v-if="form.errors.codigo" class="text-red-500 text-xs">{{ form.errors.codigo }}</small>
+          <small v-if="form.errors.sigla" class="text-red-500 text-xs">{{ form.errors.sigla }}</small>
         </div>
 
         <div class="flex flex-col gap-2">
@@ -157,50 +160,41 @@
             id="nombre"
             v-model="form.nombre"
             :class="{ 'p-invalid': form.errors.nombre }"
-            placeholder="Ingresa el nombre"
+            placeholder="Ej: Cálculo I"
             class="w-full text-sm"
           />
           <small v-if="form.errors.nombre" class="text-red-500 text-xs">{{ form.errors.nombre }}</small>
         </div>
 
-        <div class="flex flex-col gap-2">
-          <label for="apellidos" class="font-semibold text-sm">Apellidos</label>
-          <InputText
-            id="apellidos"
-            v-model="form.apellidos"
-            :class="{ 'p-invalid': form.errors.apellidos }"
-            placeholder="Ingresa los apellidos"
-            class="w-full text-sm"
-          />
-          <small v-if="form.errors.apellidos" class="text-red-500 text-xs">{{ form.errors.apellidos }}</small>
-        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div class="flex flex-col gap-2">
+            <label for="carga_horaria" class="font-semibold text-sm">Carga Horaria</label>
+            <InputNumber
+              id="carga_horaria"
+              v-model="form.carga_horaria"
+              :class="{ 'p-invalid': form.errors.carga_horaria }"
+              placeholder="Horas"
+              class="w-full text-sm"
+              :min="0"
+              suffix=" hrs"
+              :useGrouping="false"
+            />
+            <small v-if="form.errors.carga_horaria" class="text-red-500 text-xs">{{ form.errors.carga_horaria }}</small>
+          </div>
 
-        <div class="flex flex-col gap-2">
-          <label for="ci" class="font-semibold text-sm">CI</label>
-          <InputText
-            id="ci"
-            v-model="form.ci"
-            :class="{ 'p-invalid': form.errors.ci }"
-            placeholder="Ingresa el CI"
-            class="w-full text-sm"
-          />
-          <small v-if="form.errors.ci" class="text-red-500 text-xs">{{ form.errors.ci }}</small>
-        </div>
-
-        <div class="flex flex-col gap-2">
-          <label for="id_usuario" class="font-semibold text-sm">Usuario (Opcional)</label>
-          <Select
-            id="id_usuario"
-            v-model="form.id_usuario"
-            :options="availableUsuarios"
-            optionLabel="username"
-            optionValue="id"
-            placeholder="Selecciona un usuario"
-            :class="{ 'p-invalid': form.errors.id_usuario }"
-            class="w-full text-sm"
-            showClear
-          />
-          <small v-if="form.errors.id_usuario" class="text-red-500 text-xs">{{ form.errors.id_usuario }}</small>
+          <div class="flex flex-col gap-2">
+            <label for="creditos" class="font-semibold text-sm">Créditos</label>
+            <InputNumber
+              id="creditos"
+              v-model="form.creditos"
+              :class="{ 'p-invalid': form.errors.creditos }"
+              placeholder="Créditos"
+              class="w-full text-sm"
+              :min="0"
+              :useGrouping="false"
+            />
+            <small v-if="form.errors.creditos" class="text-red-500 text-xs">{{ form.errors.creditos }}</small>
+          </div>
         </div>
 
         <div class="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4">
@@ -232,7 +226,7 @@
       <div class="flex items-center gap-3 sm:gap-4">
         <i class="pi pi-exclamation-triangle text-3xl sm:text-4xl text-red-500"></i>
         <span class="text-sm sm:text-base">
-          ¿Estás seguro de que deseas eliminar al docente <strong>{{ docenteToDelete?.nombre }} {{ docenteToDelete?.apellidos }}</strong>?
+          ¿Estás seguro de que deseas eliminar la materia <strong>{{ materiaToDelete?.sigla }} - {{ materiaToDelete?.nombre }}</strong>?
         </span>
       </div>
       <template #footer>
@@ -246,7 +240,7 @@
           />
           <Button
             label="Eliminar"
-            @click="deleteDocente"
+            @click="deleteMateria"
             severity="danger"
             :loading="deleteForm.processing"
             class="w-full sm:w-auto text-sm"
@@ -258,8 +252,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
@@ -267,79 +261,57 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
-import Select from 'primevue/select';
+import InputNumber from 'primevue/inputnumber';
 import Tag from 'primevue/tag';
-import type { User } from '@/types';
 
-interface Docente {
-  codigo: string;
-  id_usuario: number | null;
+interface Materia {
+  id: number;
+  sigla: string;
   nombre: string;
-  apellidos: string;
-  ci: string;
-  usuario?: User;
+  carga_horaria: number | null;
+  creditos: number | null;
 }
 
 const props = defineProps<{
-  docentes: Docente[];
-  usuarios: User[];
+  materias: Materia[];
 }>();
 
 const dialogVisible = ref(false);
 const deleteDialogVisible = ref(false);
 const isEditing = ref(false);
-const docenteToDelete = ref<Docente | null>(null);
-const currentCodigo = ref<string | null>(null);
+const materiaToDelete = ref<Materia | null>(null);
+const currentId = ref<number | null>(null);
 
 const form = useForm({
-  codigo: '',
+  sigla: '',
   nombre: '',
-  apellidos: '',
-  ci: '',
-  id_usuario: null as number | null,
+  carga_horaria: null as number | null,
+  creditos: null as number | null,
 });
 
 const deleteForm = useForm({});
 
-const availableUsuarios = computed(() => {
-  // Usuarios disponibles: los que no tienen docente asignado + el usuario actual del docente que se está editando
-  if (isEditing.value && currentCodigo.value) {
-    const currentDocente = props.docentes.find(d => d.codigo === currentCodigo.value);
-    const currentUsuarioId = currentDocente?.id_usuario;
-    
-    return props.usuarios.filter(u => 
-      !props.docentes.some(d => d.id_usuario === u.id && d.codigo !== currentCodigo.value) ||
-      u.id === currentUsuarioId
-    );
-  }
-  
-  return props.usuarios.filter(u => 
-    !props.docentes.some(d => d.id_usuario === u.id)
-  );
-});
-
 const openCreateDialog = () => {
   isEditing.value = false;
-  currentCodigo.value = null;
+  currentId.value = null;
   form.reset();
   form.clearErrors();
   dialogVisible.value = true;
 };
 
-const openEditDialog = (docente: Docente) => {
+const openEditDialog = (materia: Materia) => {
   isEditing.value = true;
-  currentCodigo.value = docente.codigo;
-  form.codigo = docente.codigo;
-  form.nombre = docente.nombre;
-  form.apellidos = docente.apellidos;
-  form.ci = docente.ci;
-  form.id_usuario = docente.id_usuario;
+  currentId.value = materia.id;
+  form.sigla = materia.sigla;
+  form.nombre = materia.nombre;
+  form.carga_horaria = materia.carga_horaria;
+  form.creditos = materia.creditos;
   form.clearErrors();
   dialogVisible.value = true;
 };
 
-const openDeleteDialog = (docente: Docente) => {
-  docenteToDelete.value = docente;
+const openDeleteDialog = (materia: Materia) => {
+  materiaToDelete.value = materia;
   deleteDialogVisible.value = true;
 };
 
@@ -350,14 +322,17 @@ const closeDialog = () => {
 };
 
 const submitForm = () => {
-  if (isEditing.value && currentCodigo.value) {
-    form.put(`/docentes/${currentCodigo.value}`, {
+  // Convertir sigla a mayúsculas
+  form.sigla = form.sigla.toUpperCase();
+  
+  if (isEditing.value && currentId.value) {
+    form.put(`/materias/${currentId.value}`, {
       onSuccess: () => {
         closeDialog();
       },
     });
   } else {
-    form.post('/docentes', {
+    form.post('/materias', {
       onSuccess: () => {
         closeDialog();
       },
@@ -365,18 +340,14 @@ const submitForm = () => {
   }
 };
 
-const deleteDocente = () => {
-  if (docenteToDelete.value) {
-    deleteForm.delete(`/docentes/${docenteToDelete.value.codigo}`, {
+const deleteMateria = () => {
+  if (materiaToDelete.value) {
+    deleteForm.delete(`/materias/${materiaToDelete.value.id}`, {
       onSuccess: () => {
         deleteDialogVisible.value = false;
-        docenteToDelete.value = null;
+        materiaToDelete.value = null;
       },
     });
   }
-};
-
-const goToMaterias = (codigo: string) => {
-  router.visit(`/docentes/${codigo}/materias-habilitadas`);
 };
 </script>

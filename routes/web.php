@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\DocenteController;
+use App\Http\Controllers\MateriaController;
+use App\Http\Controllers\MateriaHabilitadaController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -50,4 +52,11 @@ Route::post('/logout', function () {
 Route::middleware('auth')->group(function () {
     Route::resource('usuarios', UsuarioController::class)->except(['show', 'create', 'edit']);
     Route::resource('docentes', DocenteController::class)->except(['show', 'create', 'edit']);
+    Route::resource('materias', MateriaController::class)->except(['show', 'create', 'edit']);
+    
+    // Materias habilitadas por docente
+    Route::get('/docentes/{codigo}/materias-habilitadas', [MateriaHabilitadaController::class, 'index'])
+        ->name('materias-habilitadas.index');
+    Route::put('/docentes/{codigo}/materias-habilitadas', [MateriaHabilitadaController::class, 'update'])
+        ->name('materias-habilitadas.update');
 });
