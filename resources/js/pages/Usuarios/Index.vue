@@ -8,6 +8,7 @@
         <p class="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1">Administra los usuarios del sistema</p>
       </div>
       <Button
+        v-if="puedeCrear('usuarios')"
         label="Nuevo Usuario"
         icon="pi pi-plus"
         @click="openCreateDialog"
@@ -82,6 +83,7 @@
               <template #body="slotProps">
                 <div class="flex gap-1 sm:gap-2">
                   <Button
+                    v-if="puedeEditar('usuarios')"
                     icon="pi pi-pencil"
                     @click="openEditDialog(slotProps.data)"
                     severity="info"
@@ -90,6 +92,7 @@
                     class="!p-1 sm:!p-2"
                   />
                   <Button
+                    v-if="puedeEliminar('usuarios')"
                     icon="pi pi-trash"
                     @click="confirmDelete(slotProps.data)"
                     severity="danger"
@@ -232,6 +235,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
+import { usePermissions } from '@/composables/usePermissions';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
@@ -248,6 +252,9 @@ const props = defineProps<{
   usuarios: User[];
   roles: Rol[];
 }>();
+
+// Composable de permisos
+const { puedeCrear, puedeEditar, puedeEliminar } = usePermissions();
 
 const dialogVisible = ref(false);
 const deleteDialogVisible = ref(false);

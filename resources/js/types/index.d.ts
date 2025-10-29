@@ -17,6 +17,9 @@ export interface Rol {
 export interface Permiso {
     id: number;
     nombre: string;
+    slug: string;
+    modulo: string;
+    descripcion?: string | null;
 }
 
 export interface User {

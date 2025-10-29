@@ -1,5 +1,8 @@
 <template>
   <div class="min-h-screen flex bg-gray-100 dark:bg-gray-900">
+    <!-- Toast para notificaciones -->
+    <Toast position="top-right" />
+    
     <!-- Overlay para móvil -->
     <div
       v-if="sidebarOpen && isMobile"
@@ -107,9 +110,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
+import { usePermissions } from '@/composables/usePermissions';
+import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
+import Toast from 'primevue/toast';
 import type { User } from '@/types';
 
 defineProps<{
@@ -118,26 +124,61 @@ defineProps<{
 
 const page = usePage();
 const user = (page.props.auth?.user || page.props.user) as User;
+const { puedeVer } = usePermissions();
+const toast = useToast();
 
 const sidebarOpen = ref(false);
 const isMobile = ref(false);
 
-const menuItems = [
-  { label: 'Inicio', icon: 'pi pi-home', route: '/' },
-  { label: 'Asignaciones', icon: 'pi pi-calendar', route: '/asignaciones' },
-  { label: 'Días', icon: 'pi pi-sun', route: '/dias' },
-  { label: 'Bloques Horarios', icon: 'pi pi-clock', route: '/horas' },
-  { label: 'Horarios', icon: 'pi pi-table', route: '/horarios' },
-  { label: 'Gestiones', icon: 'pi pi-history', route: '/gestiones' },
-  { label: 'Docentes', icon: 'pi pi-id-card', route: '/docentes' },
-  { label: 'Materias', icon: 'pi pi-book', route: '/materias' },
-  { label: 'Grupos', icon: 'pi pi-users', route: '/grupos' },
-  { label: 'Aulas', icon: 'pi pi-building', route: '/aulas' },
-  { label: 'Módulos', icon: 'pi pi-th-large', route: '/modulos' },
-  { label: 'Usuarios', icon: 'pi pi-users', route: '/usuarios' },
-  { label: 'Reportes', icon: 'pi pi-chart-bar', route: '/reportes' },
-  { label: 'Configuración', icon: 'pi pi-cog', route: '/configuracion' },
+// Mostrar mensajes flash
+watch(() => page.props.flash, (flash: any) => {
+  if (flash?.success) {
+    toast.add({
+      severity: 'success',
+      summary: 'Éxito',
+      detail: flash.success,
+      life: 3000
+    });
+  }
+  if (flash?.error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: flash.error,
+      life: 5000
+    });
+  }
+}, { deep: true });
+
+const allMenuItems = [
+  { label: 'Inicio', icon: 'pi pi-home', route: '/', permiso: null },
+  { label: 'Asignaciones', icon: 'pi pi-calendar', route: '/asignaciones', permiso: 'asignaciones.ver' },
+  { label: 'Días', icon: 'pi pi-sun', route: '/dias', permiso: 'dias.ver' },
+  { label: 'Bloques Horarios', icon: 'pi pi-clock', route: '/horas', permiso: 'horas.ver' },
+  { label: 'Horarios', icon: 'pi pi-table', route: '/horarios', permiso: 'horarios.ver' },
+  { label: 'Gestiones', icon: 'pi pi-history', route: '/gestiones', permiso: 'gestiones.ver' },
+  { label: 'Docentes', icon: 'pi pi-id-card', route: '/docentes', permiso: 'docentes.ver' },
+  { label: 'Materias', icon: 'pi pi-book', route: '/materias', permiso: 'materias.ver' },
+  { label: 'Grupos', icon: 'pi pi-users', route: '/grupos', permiso: 'grupos.ver' },
+  { label: 'Aulas', icon: 'pi pi-building', route: '/aulas', permiso: 'aulas.ver' },
+  { label: 'Módulos', icon: 'pi pi-th-large', route: '/modulos', permiso: 'modulos.ver' },
+  { label: 'Usuarios', icon: 'pi pi-users', route: '/usuarios', permiso: 'usuarios.ver' },
+  { label: 'Roles', icon: 'pi pi-shield', route: '/roles', permiso: 'roles.ver' },
+  { label: 'Permisos', icon: 'pi pi-lock', route: '/permisos', permiso: 'permisos.ver' },
+  { label: 'Bitácora', icon: 'pi pi-file-edit', route: '/bitacora', permiso: 'bitacora.ver' },
+  { label: 'Reportes', icon: 'pi pi-chart-bar', route: '/reportes', permiso: 'reportes.ver' },
+  { label: 'Configuración', icon: 'pi pi-cog', route: '/configuracion', permiso: 'configuracion.ver' },
 ];
+
+// Filtrar items del menú según permisos del usuario
+const menuItems = computed(() => {
+  return allMenuItems.filter(item => {
+    // Si no requiere permiso (como Inicio), mostrarlo siempre
+    if (!item.permiso) return true;
+    // Si requiere permiso, verificar que el usuario lo tenga
+    return puedeVer(item.permiso.split('.')[0]);
+  });
+});
 
 const checkMobile = () => {
   isMobile.value = window.innerWidth < 1024;

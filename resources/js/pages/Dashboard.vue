@@ -88,28 +88,13 @@
 </template>
 
 <script setup lang="ts">
+import { usePage } from '@inertiajs/vue3';
+import { usePermissions } from '@/composables/usePermissions';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Card from 'primevue/card';
+import type { User } from '@/types';
 
-interface Permiso {
-  id: number;
-  nombre: string;
-}
-
-interface Rol {
-  id: number;
-  nombre: string;
-  permisos: Permiso[];
-}
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  rol?: Rol;
-}
-
-const props = defineProps<{
-  user: User;
-}>();
+const page = usePage();
+const user = (page.props.auth?.user || page.props.user) as User;
+const { puedeVer } = usePermissions();
 </script>

@@ -7,6 +7,7 @@ import { createApp, h } from 'vue';
 import PrimeVue from 'primevue/config';
 import Aura from '@primevue/themes/aura';
 import Tooltip from 'primevue/tooltip';
+import ToastService from 'primevue/toastservice';
 import 'primeicons/primeicons.css';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
@@ -22,6 +23,7 @@ createInertiaApp({
                     preset: Aura
                 }
             })
+            .use(ToastService)
             .directive('tooltip', Tooltip)
             .mount(el);
     },
