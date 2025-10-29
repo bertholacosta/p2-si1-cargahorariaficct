@@ -4,6 +4,11 @@ use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\DocenteController;
 use App\Http\Controllers\MateriaController;
 use App\Http\Controllers\MateriaHabilitadaController;
+use App\Http\Controllers\GrupoController;
+use App\Http\Controllers\GrupoMateriaController;
+use App\Http\Controllers\ModuloController;
+use App\Http\Controllers\AulaController;
+use App\Http\Controllers\GestionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -53,10 +58,20 @@ Route::middleware('auth')->group(function () {
     Route::resource('usuarios', UsuarioController::class)->except(['show', 'create', 'edit']);
     Route::resource('docentes', DocenteController::class)->except(['show', 'create', 'edit']);
     Route::resource('materias', MateriaController::class)->except(['show', 'create', 'edit']);
+    Route::resource('grupos', GrupoController::class)->except(['show', 'create', 'edit']);
+    Route::resource('modulos', ModuloController::class)->except(['show', 'create', 'edit']);
+    Route::resource('aulas', AulaController::class)->except(['show', 'create', 'edit']);
+    Route::resource('gestiones', GestionController::class)->except(['show', 'create', 'edit']);
     
     // Materias habilitadas por docente
     Route::get('/docentes/{codigo}/materias-habilitadas', [MateriaHabilitadaController::class, 'index'])
         ->name('materias-habilitadas.index');
     Route::put('/docentes/{codigo}/materias-habilitadas', [MateriaHabilitadaController::class, 'update'])
         ->name('materias-habilitadas.update');
+    
+    // Grupos por materia
+    Route::get('/materias/{materia}/grupos', [GrupoMateriaController::class, 'index'])
+        ->name('grupos-materia.index');
+    Route::put('/materias/{materia}/grupos', [GrupoMateriaController::class, 'update'])
+        ->name('grupos-materia.update');
 });

@@ -35,4 +35,17 @@ class Materia extends Model
             'codigo'
         )->withTimestamps();
     }
+
+    /**
+     * Relación con Grupos
+     */
+    public function grupos(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Grupo::class,
+            'grupo_materia',
+            'id_materia',
+            'id_grupo'
+        )->withTimestamps();
+    }
 }
