@@ -14,7 +14,7 @@
       
       <template #content>
         <form @submit.prevent="handleLogin" class="space-y-4">
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-1">
             <label for="email" class="font-semibold text-sm text-gray-700 dark:text-gray-300">
               Correo Electrónico
             </label>
@@ -29,7 +29,7 @@
             <small v-if="form.errors.email" class="text-red-500">{{ form.errors.email }}</small>
           </div>
 
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-1 ">
             <label for="password" class="font-semibold text-sm text-gray-700 dark:text-gray-300">
               Contraseña
             </label>
@@ -40,41 +40,30 @@
               :class="{ 'p-invalid': form.errors.password }"
               :feedback="false"
               toggleMask
+              inputClass="w-full"
               class="w-full"
             />
             <small v-if="form.errors.password" class="text-red-500">{{ form.errors.password }}</small>
           </div>
 
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <Checkbox v-model="form.remember" inputId="remember" :binary="true" />
-              <label for="remember" class="text-sm text-gray-700 dark:text-gray-300">
-                Recordarme
-              </label>
-            </div>
-            <a href="#" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
-              ¿Olvidaste tu contraseña?
-            </a>
-          </div>
-
+          <div class="pt-4">
           <Button
             type="submit"
             label="Iniciar Sesión"
             icon="pi pi-sign-in"
             :loading="form.processing"
-            class="w-full"
+            class="w-full "
             severity="primary"
           />
-        </form>
-      </template>
+          </div>
 
-      <template #footer>
-        <div class="text-center text-sm text-gray-600 dark:text-gray-400">
-          ¿No tienes una cuenta?
-          <a href="#" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-semibold">
-            Regístrate aquí
-          </a>
-        </div>
+          <div class="flex justify-start">
+            <a href="#" class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 py-2">
+              ¿Olvidaste tu contraseña?
+            </a>
+          </div>
+
+        </form>
       </template>
     </Card>
   </div>
@@ -87,12 +76,10 @@ import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
-import Checkbox from 'primevue/checkbox';
 
 const form = useForm({
   email: '',
   password: '',
-  remember: false,
 });
 
 const handleLogin = () => {
