@@ -24,8 +24,9 @@
           <h1 v-if="sidebarOpen" class="text-lg font-bold text-gray-800 dark:text-white">
             FICCT
           </h1>
+          <!-- Botón único del menú -->
           <Button
-            :icon="sidebarOpen ? 'pi pi-times' : 'pi pi-bars'"
+            :icon="sidebarOpen ? 'pi pi-chevron-left' : 'pi pi-bars'"
             @click="toggleSidebar"
             text
             rounded
@@ -35,6 +36,7 @@
 
         <!-- Menu Items -->
         <nav class="flex-1 px-2 py-4 space-y-2 overflow-y-auto">
+          <!-- Regular menu items -->
           <a
             v-for="item in menuItems"
             :key="item.label"
@@ -50,6 +52,80 @@
             <i :class="item.icon"></i>
             <span v-if="sidebarOpen">{{ item.label }}</span>
           </a>
+
+          <!-- Horarios dropdown menu -->
+          <div v-if="showHorariosMenu">
+            <div
+              @click="toggleHorariosMenu"
+              :class="[
+                'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer',
+                'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              ]"
+            >
+              <i class="pi pi-table"></i>
+              <span v-if="sidebarOpen" class="flex-1">Horarios</span>
+              <i
+                v-if="sidebarOpen"
+                :class="['pi transition-transform', horariosMenuOpen ? 'pi-chevron-down' : 'pi-chevron-right']"
+              ></i>
+            </div>
+
+            <!-- Horarios submenu items -->
+            <div v-if="horariosMenuOpen && sidebarOpen" class="ml-4 space-y-1">
+              <a
+                v-for="horariosItem in filteredHorariosItems"
+                :key="horariosItem.label"
+                :href="horariosItem.route"
+                @click.prevent="navigateTo(horariosItem.route)"
+                :class="[
+                  'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors cursor-pointer text-sm',
+                  isActive(horariosItem.route)
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ]"
+              >
+                <i :class="horariosItem.icon"></i>
+                <span>{{ horariosItem.label }}</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Administración dropdown menu -->
+          <div v-if="showAdminMenu">
+            <div
+              @click="toggleAdminMenu"
+              :class="[
+                'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer',
+                'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              ]"
+            >
+              <i class="pi pi-shield"></i>
+              <span v-if="sidebarOpen" class="flex-1">Administración</span>
+              <i
+                v-if="sidebarOpen"
+                :class="['pi transition-transform', adminMenuOpen ? 'pi-chevron-down' : 'pi-chevron-right']"
+              ></i>
+            </div>
+
+            <!-- Admin submenu items -->
+            <div v-if="adminMenuOpen && sidebarOpen" class="ml-4 space-y-1">
+              <a
+                v-for="adminItem in filteredAdminItems"
+                :key="adminItem.label"
+                :href="adminItem.route"
+                @click.prevent="navigateTo(adminItem.route)"
+                :class="[
+                  'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors cursor-pointer text-sm',
+                  isActive(adminItem.route)
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ]"
+              >
+                <i :class="adminItem.icon"></i>
+                <span>{{ adminItem.label }}</span>
+              </a>
+            </div>
+          </div>
         </nav>
 
         <!-- User Info -->
@@ -88,13 +164,14 @@
     <div class="flex-1 flex flex-col min-w-0">
       <!-- Top Navbar -->
       <nav class="bg-white dark:bg-gray-800 shadow-sm h-16 flex items-center px-4 lg:px-6">
-        <!-- Botón menú móvil -->
+        <!-- Botón menú para móvil (solo cuando sidebar está oculto) -->
         <Button
+          v-if="!sidebarOpen && isMobile"
           icon="pi pi-bars"
           @click="openSidebar"
           text
           rounded
-          class="lg:hidden mr-3 text-gray-600 dark:text-gray-300"
+          class="mr-3 text-gray-600 dark:text-gray-300"
         />
         <h2 class="text-lg lg:text-xl font-semibold text-gray-800 dark:text-white truncate">
           {{ title }}
@@ -117,6 +194,8 @@ import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Toast from 'primevue/toast';
 import type { User } from '@/types';
+
+const adminMenuOpen = ref(false);
 
 defineProps<{
   title: string;
@@ -153,21 +232,27 @@ watch(() => page.props.flash, (flash: any) => {
 const allMenuItems = [
   { label: 'Inicio', icon: 'pi pi-home', route: '/', permiso: null },
   { label: 'Asignaciones', icon: 'pi pi-calendar', route: '/asignaciones', permiso: 'asignaciones.ver' },
-  { label: 'Días', icon: 'pi pi-sun', route: '/dias', permiso: 'dias.ver' },
-  { label: 'Bloques Horarios', icon: 'pi pi-clock', route: '/horas', permiso: 'horas.ver' },
-  { label: 'Horarios', icon: 'pi pi-table', route: '/horarios', permiso: 'horarios.ver' },
   { label: 'Gestiones', icon: 'pi pi-history', route: '/gestiones', permiso: 'gestiones.ver' },
   { label: 'Docentes', icon: 'pi pi-id-card', route: '/docentes', permiso: 'docentes.ver' },
   { label: 'Materias', icon: 'pi pi-book', route: '/materias', permiso: 'materias.ver' },
   { label: 'Grupos', icon: 'pi pi-users', route: '/grupos', permiso: 'grupos.ver' },
   { label: 'Aulas', icon: 'pi pi-building', route: '/aulas', permiso: 'aulas.ver' },
   { label: 'Módulos', icon: 'pi pi-th-large', route: '/modulos', permiso: 'modulos.ver' },
+  { label: 'Reportes', icon: 'pi pi-chart-bar', route: '/reportes', permiso: 'reportes.ver' },
+  { label: 'Configuración', icon: 'pi pi-cog', route: '/configuracion', permiso: 'configuracion.ver' },
+];
+
+const horariosMenuItems = [
+  { label: 'Días', icon: 'pi pi-sun', route: '/dias', permiso: 'dias.ver' },
+  { label: 'Bloques Horarios', icon: 'pi pi-clock', route: '/horas', permiso: 'horas.ver' },
+  { label: 'Horarios', icon: 'pi pi-table', route: '/horarios', permiso: 'horarios.ver' },
+];
+
+const adminMenuItems = [
   { label: 'Usuarios', icon: 'pi pi-users', route: '/usuarios', permiso: 'usuarios.ver' },
   { label: 'Roles', icon: 'pi pi-shield', route: '/roles', permiso: 'roles.ver' },
   { label: 'Permisos', icon: 'pi pi-lock', route: '/permisos', permiso: 'permisos.ver' },
   { label: 'Bitácora', icon: 'pi pi-file-edit', route: '/bitacora', permiso: 'bitacora.ver' },
-  { label: 'Reportes', icon: 'pi pi-chart-bar', route: '/reportes', permiso: 'reportes.ver' },
-  { label: 'Configuración', icon: 'pi pi-cog', route: '/configuracion', permiso: 'configuracion.ver' },
 ];
 
 // Filtrar items del menú según permisos del usuario
@@ -179,6 +264,33 @@ const menuItems = computed(() => {
     return puedeVer(item.permiso.split('.')[0]);
   });
 });
+
+const filteredHorariosItems = computed(() => {
+  return horariosMenuItems.filter(item => {
+    if (!item.permiso) return true;
+    return puedeVer(item.permiso.split('.')[0]);
+  });
+});
+
+const filteredAdminItems = computed(() => {
+  return adminMenuItems.filter(item => {
+    if (!item.permiso) return true;
+    return puedeVer(item.permiso.split('.')[0]);
+  });
+});
+
+const showHorariosMenu = computed(() => filteredHorariosItems.value.length > 0);
+const showAdminMenu = computed(() => filteredAdminItems.value.length > 0);
+
+const horariosMenuOpen = ref(false);
+
+const toggleHorariosMenu = () => {
+  horariosMenuOpen.value = !horariosMenuOpen.value;
+};
+
+const toggleAdminMenu = () => {
+  adminMenuOpen.value = !adminMenuOpen.value;
+};
 
 const checkMobile = () => {
   isMobile.value = window.innerWidth < 1024;
