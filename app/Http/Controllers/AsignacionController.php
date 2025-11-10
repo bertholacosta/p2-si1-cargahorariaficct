@@ -164,6 +164,97 @@ class AsignacionController extends Controller
     }
 
     /**
+     * Crear múltiples asignaciones con rango de horarios
+     */
+    public function storeMultiple(Request $request)
+    {
+        $validated = $request->validate([
+            'id_docente' => 'required|exists:docente,codigo',
+            'id_grupo_materia' => 'required|exists:grupo_materia,id',
+            'id_gestion' => 'required|exists:gestion,id',
+            'bloques' => 'required|array|min:1',
+            'bloques.*.id_dia' => 'required|exists:dia,id',
+            'bloques.*.id_hora_inicio' => 'required|exists:hora,id',
+            'bloques.*.id_hora_fin' => 'required|exists:hora,id',
+            'bloques.*.id_aula' => 'required|exists:aula,id',
+        ]);
+
+        $asignacionesCreadas = 0;
+        $errores = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($validated['bloques'] as $index => $bloque) {
+                // Obtener las horas de inicio y fin
+                $horaInicio = Hora::findOrFail($bloque['id_hora_inicio']);
+                $horaFin = Hora::findOrFail($bloque['id_hora_fin']);
+
+                // Validar que la hora de fin sea posterior a la de inicio
+                if ($horaFin->hora_inicio <= $horaInicio->hora_inicio) {
+                    $errores[] = "Bloque " . ($index + 1) . ": La hora de fin debe ser posterior a la hora de inicio";
+                    continue;
+                }
+
+                // Obtener todos los bloques horarios consecutivos entre inicio y fin
+                $horasConsecutivas = Hora::where('hora_inicio', '>=', $horaInicio->hora_inicio)
+                    ->where('hora_fin', '<=', $horaFin->hora_fin)
+                    ->orderBy('hora_inicio')
+                    ->get();
+
+                if ($horasConsecutivas->isEmpty()) {
+                    $errores[] = "Bloque " . ($index + 1) . ": No se encontraron bloques horarios en el rango especificado";
+                    continue;
+                }
+
+                // Crear asignaciones para cada bloque horario consecutivo
+                foreach ($horasConsecutivas as $hora) {
+                    // Buscar o crear el horario (día + hora)
+                    $horario = Horario::firstOrCreate([
+                        'id_dia' => $bloque['id_dia'],
+                        'id_hora' => $hora->id,
+                    ]);
+
+                    // Verificar conflictos
+                    $datosAsignacion = [
+                        'id_docente' => $validated['id_docente'],
+                        'id_grupo_materia' => $validated['id_grupo_materia'],
+                        'id_horario' => $horario->id,
+                        'id_aula' => $bloque['id_aula'],
+                        'id_gestion' => $validated['id_gestion'],
+                    ];
+
+                    $conflictos = $this->verificarConflictos($datosAsignacion);
+
+                    if (!empty($conflictos)) {
+                        $dia = Dia::find($bloque['id_dia']);
+                        $errores[] = "Bloque " . ($index + 1) . " ({$dia->nombre} {$hora->hora_inicio}-{$hora->hora_fin}): " . $conflictos[0];
+                        DB::rollBack();
+                        return back()->withErrors(['conflicto' => implode(' | ', $errores)]);
+                    }
+
+                    // Crear la asignación
+                    Asignacion::create($datosAsignacion);
+                    $asignacionesCreadas++;
+                }
+            }
+
+            if (!empty($errores)) {
+                DB::rollBack();
+                return back()->withErrors(['conflicto' => implode(' | ', $errores)]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('asignaciones.index', ['gestion_id' => $validated['id_gestion']])
+                ->with('success', "$asignacionesCreadas asignaciones creadas exitosamente");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['conflicto' => 'Error al crear las asignaciones: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(Asignacion $asignacione)

@@ -297,39 +297,67 @@
                 :key="index"
                 class="flex gap-2 items-start border-b pb-2"
               >
-                <div class="flex-1 grid grid-cols-3 gap-2">
-                  <Select
-                    v-model="bloque.dia"
-                    :options="dias"
-                    optionValue="id"
-                    optionLabel="nombre"
-                    placeholder="Día"
-                    class="text-xs"
-                  />
-                  <Select
-                    v-model="bloque.hora"
-                    :options="horas"
-                    optionValue="id"
-                    placeholder="Hora"
-                    class="text-xs"
-                  >
-                    <template #value="slotProps">
-                      <span v-if="slotProps.value" class="text-xs">{{ getHoraPeriodo(slotProps.value) }}</span>
-                      <span v-else class="text-xs">{{ slotProps.placeholder }}</span>
-                    </template>
-                    <template #option="slotProps">
-                      <span class="text-xs">{{ formatTime(slotProps.option.hora_inicio) }} - {{ formatTime(slotProps.option.hora_fin) }}</span>
-                    </template>
-                  </Select>
-                  <Select
-                    v-model="bloque.aula"
-                    :options="aulas"
-                    optionValue="id"
-                    optionLabel="nombre"
-                    placeholder="Aula"
-                    class="text-xs"
-                    filter
-                  />
+                <div class="flex-1 space-y-2">
+                  <div class="grid grid-cols-2 gap-2">
+                    <Select
+                      v-model="bloque.dia"
+                      :options="dias"
+                      optionValue="id"
+                      optionLabel="nombre"
+                      placeholder="Día"
+                      class="text-xs"
+                    />
+                    <Select
+                      v-model="bloque.aula"
+                      :options="aulas"
+                      optionValue="id"
+                      optionLabel="nombre"
+                      placeholder="Aula"
+                      class="text-xs"
+                      filter
+                    />
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="flex flex-col gap-1">
+                      <label class="text-[10px] text-gray-600">Hora Inicio</label>
+                      <Select
+                        v-model="bloque.hora_inicio"
+                        :options="horas"
+                        optionValue="id"
+                        placeholder="Inicio"
+                        class="text-xs"
+                      >
+                        <template #value="slotProps">
+                          <span v-if="slotProps.value" class="text-xs">{{ getHoraPeriodo(slotProps.value) }}</span>
+                          <span v-else class="text-xs">{{ slotProps.placeholder }}</span>
+                        </template>
+                        <template #option="slotProps">
+                          <span class="text-xs">{{ formatTime(slotProps.option.hora_inicio) }} - {{ formatTime(slotProps.option.hora_fin) }}</span>
+                        </template>
+                      </Select>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label class="text-[10px] text-gray-600">Hora Fin</label>
+                      <Select
+                        v-model="bloque.hora_fin"
+                        :options="horas"
+                        optionValue="id"
+                        placeholder="Fin"
+                        class="text-xs"
+                      >
+                        <template #value="slotProps">
+                          <span v-if="slotProps.value" class="text-xs">{{ getHoraPeriodo(slotProps.value) }}</span>
+                          <span v-else class="text-xs">{{ slotProps.placeholder }}</span>
+                        </template>
+                        <template #option="slotProps">
+                          <span class="text-xs">{{ formatTime(slotProps.option.hora_inicio) }} - {{ formatTime(slotProps.option.hora_fin) }}</span>
+                        </template>
+                      </Select>
+                    </div>
+                  </div>
+                  <small v-if="bloque.hora_inicio && bloque.hora_fin" class="text-[10px] text-blue-600">
+                    Se asignarán {{ calcularBloquesConsecutivos(bloque.hora_inicio, bloque.hora_fin) }} bloques de 45 min
+                  </small>
                 </div>
                 <Button
                   icon="pi pi-trash"
@@ -670,7 +698,8 @@ const colores = [
 // Bloques para asignación rápida
 interface BloqueRapido {
   dia: number | null;
-  hora: number | null;
+  hora_inicio: number | null;
+  hora_fin: number | null;
   aula: number | null;
 }
 
@@ -857,7 +886,8 @@ const closeRapidDialog = () => {
 const agregarBloqueRapido = () => {
   bloquesRapidos.value.push({
     dia: null,
-    hora: null,
+    hora_inicio: null,
+    hora_fin: null,
     aula: null,
   });
 };
@@ -872,7 +902,23 @@ const getCargaHorariaRapida = () => {
   return gm?.carga_horaria || 0;
 };
 
-const guardarAsignacionesRapidas = async () => {
+const calcularBloquesConsecutivos = (horaInicioId: number | null, horaFinId: number | null) => {
+  if (!horaInicioId || !horaFinId) return 0;
+  
+  const horaInicio = props.horas.find(h => h.id === horaInicioId);
+  const horaFin = props.horas.find(h => h.id === horaFinId);
+  
+  if (!horaInicio || !horaFin) return 0;
+  
+  // Contar cuántos bloques hay entre inicio y fin (inclusivo)
+  const bloquesEnRango = props.horas.filter(h => 
+    h.hora_inicio >= horaInicio.hora_inicio && h.hora_fin <= horaFin.hora_fin
+  );
+  
+  return bloquesEnRango.length;
+};
+
+const guardarAsignacionesRapidas = () => {
   rapidForm.errors = null;
   
   // Validaciones
@@ -887,45 +933,38 @@ const guardarAsignacionesRapidas = async () => {
   }
 
   // Validar que todos los bloques estén completos
-  const bloqueIncompleto = bloquesRapidos.value.find(b => !b.dia || !b.hora || !b.aula);
+  const bloqueIncompleto = bloquesRapidos.value.find(b => !b.dia || !b.hora_inicio || !b.hora_fin || !b.aula);
   if (bloqueIncompleto) {
-    rapidForm.errors = 'Todos los bloques deben tener día, hora y aula';
+    rapidForm.errors = 'Todos los bloques deben tener día, hora de inicio, hora de fin y aula';
     return;
   }
 
   rapidForm.processing = true;
 
-  // Crear asignaciones una por una
-  for (const bloque of bloquesRapidos.value) {
-    const horario = props.horarios.find(
-      h => h.id_dia === bloque.dia && h.id_hora === bloque.hora
-    );
+  // Preparar datos para enviar al backend
+  const bloquesParaEnviar = bloquesRapidos.value.map(bloque => ({
+    id_dia: bloque.dia,
+    id_hora_inicio: bloque.hora_inicio,
+    id_hora_fin: bloque.hora_fin,
+    id_aula: bloque.aula,
+  }));
 
-    if (horario) {
-      try {
-        await router.post('/asignaciones', {
-          id_docente: rapidForm.id_docente,
-          id_grupo_materia: rapidForm.id_grupo_materia,
-          id_horario: horario.id,
-          id_aula: bloque.aula,
-          id_gestion: gestionActual.value,
-        }, {
-          preserveScroll: true,
-          onError: (errors) => {
-            rapidForm.errors = errors.conflicto || 'Error al crear asignación';
-            rapidForm.processing = false;
-          },
-        });
-      } catch (error) {
-        rapidForm.processing = false;
-        return;
-      }
-    }
-  }
-
-  rapidForm.processing = false;
-  closeRapidDialog();
-  router.reload();
+  router.post('/asignaciones/multiple', {
+    id_docente: rapidForm.id_docente,
+    id_grupo_materia: rapidForm.id_grupo_materia,
+    id_gestion: gestionActual.value,
+    bloques: bloquesParaEnviar,
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      rapidForm.processing = false;
+      closeRapidDialog();
+    },
+    onError: (errors: any) => {
+      rapidForm.errors = errors.conflicto || 'Error al crear asignaciones';
+      rapidForm.processing = false;
+    },
+  });
 };
 
 const duplicarAsignacion = () => {

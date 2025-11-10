@@ -147,6 +147,7 @@ Route::middleware('auth')->group(function () {
     // Asignaciones
     Route::get('/asignaciones', [AsignacionController::class, 'index'])->middleware('permiso:asignaciones.ver')->name('asignaciones.index');
     Route::post('/asignaciones', [AsignacionController::class, 'store'])->middleware('permiso:asignaciones.crear')->name('asignaciones.store');
+    Route::post('/asignaciones/multiple', [AsignacionController::class, 'storeMultiple'])->middleware('permiso:asignaciones.crear')->name('asignaciones.storeMultiple');
     Route::delete('/asignaciones/{asignacion}', [AsignacionController::class, 'destroy'])->middleware('permiso:asignaciones.eliminar')->name('asignaciones.destroy');
     
     // Rutas adicionales para asignaciones
