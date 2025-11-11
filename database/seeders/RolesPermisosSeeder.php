@@ -14,7 +14,7 @@ class RolesPermisosSeeder extends Seeder
      */
     public function run(): void
     {
-        // Crear Permisos
+        // Crear Permisos adicionales (usar updateOrCreate para evitar duplicados)
         $permisos = [
             ['nombre' => 'Ver usuarios', 'slug' => 'ver_usuarios', 'modulo' => 'Usuarios'],
             ['nombre' => 'Crear usuarios', 'slug' => 'crear_usuarios', 'modulo' => 'Usuarios'],
@@ -27,49 +27,69 @@ class RolesPermisosSeeder extends Seeder
         ];
 
         foreach ($permisos as $permiso) {
-            Permiso::create($permiso);
+            Permiso::updateOrCreate(
+                ['slug' => $permiso['slug']],
+                $permiso
+            );
         }
 
-        // Crear Roles
-        $adminRol = Rol::create(['nombre' => 'Administrador']);
-        $docenteRol = Rol::create(['nombre' => 'Docente']);
-        $estudianteRol = Rol::create(['nombre' => 'Estudiante']);
+        // Crear Roles (usar firstOrCreate para evitar duplicados)
+        $adminRol = Rol::firstOrCreate(
+            ['nombre' => 'Administrador'],
+            ['descripcion' => 'Acceso total al sistema']
+        );
+        
+        $docenteRol = Rol::firstOrCreate(
+            ['nombre' => 'Docente'],
+            ['descripcion' => 'Acceso para docentes']
+        );
+        
+        $estudianteRol = Rol::firstOrCreate(
+            ['nombre' => 'Estudiante'],
+            ['descripcion' => 'Acceso para estudiantes']
+        );
 
-        // Asignar todos los permisos al Administrador
-        $adminRol->permisos()->attach(Permiso::all());
+        // Asignar permisos básicos (sync reemplaza, no duplica)
+        $adminRol->permisos()->sync(Permiso::all()->pluck('id'));
 
         // Asignar permisos específicos al Docente
-        $docenteRol->permisos()->attach(
-            Permiso::whereIn('slug', ['ver_horarios', 'crear_horarios', 'editar_horarios'])->get()
+        $docenteRol->permisos()->sync(
+            Permiso::whereIn('slug', ['ver_horarios', 'crear_horarios', 'editar_horarios'])->pluck('id')
         );
 
         // Asignar permisos específicos al Estudiante
-        $estudianteRol->permisos()->attach(
-            Permiso::where('slug', 'ver_horarios')->get()
+        $estudianteRol->permisos()->sync(
+            Permiso::where('slug', 'ver_horarios')->pluck('id')
         );
 
-        // Crear usuario administrador por defecto
-        Usuario::create([
-            'username' => 'admin',
-            'email' => 'admin@ficct.edu.bo',
-            'password' => 'password123', // Será hasheado automáticamente
-            'id_rol' => $adminRol->id,
-        ]);
+        // Crear usuarios de prueba (usar firstOrCreate para evitar duplicados)
+        Usuario::firstOrCreate(
+            ['email' => 'admin@ficct.edu.bo'],
+            [
+                'username' => 'admin',
+                'password' => 'password123', // Será hasheado automáticamente
+                'id_rol' => $adminRol->id,
+            ]
+        );
 
-        // Crear usuario docente de prueba
-        Usuario::create([
-            'username' => 'docente',
-            'email' => 'docente@ficct.edu.bo',
-            'password' => 'password123',
-            'id_rol' => $docenteRol->id,
-        ]);
+        Usuario::firstOrCreate(
+            ['email' => 'docente@ficct.edu.bo'],
+            [
+                'username' => 'docente',
+                'password' => 'password123',
+                'id_rol' => $docenteRol->id,
+            ]
+        );
 
-        // Crear usuario estudiante de prueba
-        Usuario::create([
-            'username' => 'estudiante',
-            'email' => 'estudiante@ficct.edu.bo',
-            'password' => 'password123',
-            'id_rol' => $estudianteRol->id,
-        ]);
+        Usuario::firstOrCreate(
+            ['email' => 'estudiante@ficct.edu.bo'],
+            [
+                'username' => 'estudiante',
+                'password' => 'password123',
+                'id_rol' => $estudianteRol->id,
+            ]
+        );
+        
+        $this->command->info('✓ Roles y usuarios creados exitosamente');
     }
 }

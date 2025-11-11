@@ -13,10 +13,9 @@ class PermisosSeeder extends Seeder
      */
     public function run(): void
     {
-        // Limpiar permisos existentes
-        DB::table('rol_permiso')->truncate();
-        Permiso::truncate();
-
+        // No hacer truncate, migrate:fresh ya limpia las tablas
+        // Usar updateOrCreate para evitar duplicados
+        
         $permisos = [
             // Usuarios
             ['nombre' => 'Ver usuarios', 'slug' => 'usuarios.ver', 'modulo' => 'Usuarios', 'descripcion' => 'Puede ver la lista de usuarios'],
@@ -115,9 +114,12 @@ class PermisosSeeder extends Seeder
         ];
 
         foreach ($permisos as $permiso) {
-            Permiso::create($permiso);
+            Permiso::updateOrCreate(
+                ['slug' => $permiso['slug']], // Busca por slug único
+                $permiso // Si no existe, crea con estos datos
+            );
         }
 
-        $this->command->info('Permisos creados exitosamente: ' . count($permisos));
+        $this->command->info('✓ Permisos creados/actualizados exitosamente: ' . count($permisos));
     }
 }
