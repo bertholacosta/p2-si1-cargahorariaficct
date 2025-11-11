@@ -169,6 +169,23 @@ Route::middleware('auth')->group(function () {
         ->middleware('permiso:asignaciones.ver')
         ->name('asignaciones.aula');
     
+    // Importación masiva de asignaciones (rutas específicas primero)
+    Route::get('/asignaciones/importar/plantilla', [\App\Http\Controllers\ImportarAsignacionesController::class, 'descargarPlantilla'])
+        ->middleware('permiso:asignaciones.crear')
+        ->name('asignaciones.importar.plantilla');
+    Route::post('/asignaciones/importar/procesar', [\App\Http\Controllers\ImportarAsignacionesController::class, 'procesarArchivo'])
+        ->middleware('permiso:asignaciones.crear')
+        ->name('asignaciones.importar.procesar');
+    Route::post('/asignaciones/importar/confirmar', [\App\Http\Controllers\ImportarAsignacionesController::class, 'confirmarImportacion'])
+        ->middleware('permiso:asignaciones.crear')
+        ->name('asignaciones.importar.confirmar');
+    Route::post('/asignaciones/importar/cancelar', [\App\Http\Controllers\ImportarAsignacionesController::class, 'cancelarImportacion'])
+        ->middleware('permiso:asignaciones.crear')
+        ->name('asignaciones.importar.cancelar');
+    Route::get('/asignaciones/importar', [\App\Http\Controllers\ImportarAsignacionesController::class, 'index'])
+        ->middleware('permiso:asignaciones.crear')
+        ->name('asignaciones.importar');
+    
     // Materias habilitadas por docente
     Route::get('/docentes/{codigo}/materias-habilitadas', [MateriaHabilitadaController::class, 'index'])
         ->middleware('permiso:docentes.materias')

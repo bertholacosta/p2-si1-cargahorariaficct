@@ -40,6 +40,15 @@
           
           <div class="flex gap-2 w-full sm:w-auto">
             <Button
+              label="Importar Excel"
+              icon="pi pi-file-excel"
+              @click="irAImportar"
+              severity="success"
+              outlined
+              class="flex-1 sm:flex-initial"
+              size="small"
+            />
+            <Button
               label="Asignación Rápida"
               icon="pi pi-bolt"
               @click="openRapidDialog"
@@ -865,6 +874,10 @@ const openCreateDialog = () => {
   form.id_gestion = gestionActual.value;
   form.clearErrors();
   dialogVisible.value = true;
+};
+
+const irAImportar = () => {
+  router.visit('/asignaciones/importar');
 };
 
 const openRapidDialog = () => {

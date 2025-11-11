@@ -25,6 +25,10 @@ class Gestion extends Model
         'año' => 'integer',
     ];
 
+    protected $appends = [
+        'nombre_completo',
+    ];
+
     /**
      * Accessor para obtener el nombre completo de la gestión
      */
