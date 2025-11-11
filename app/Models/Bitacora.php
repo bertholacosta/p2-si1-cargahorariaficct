@@ -39,6 +39,7 @@ class Bitacora extends Model
     {
         $data = [
             'accion' => $accion,
+            'fecha' => now(), // Establecer explícitamente la fecha actual en zona horaria configurada
             'ip' => $ip ?? \App\Helpers\BitacoraHelper::obtenerIpReal(),
             'id_usuario' => $usuarioId ?? auth()->id(),
         ];

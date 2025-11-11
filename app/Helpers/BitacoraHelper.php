@@ -64,6 +64,7 @@ class BitacoraHelper
     {
         Bitacora::create([
             'accion' => "Intento de inicio de sesión fallido con email: {$email}",
+            'fecha' => now(),
             'ip' => $ip,
             'id_usuario' => null,
         ]);

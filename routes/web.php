@@ -53,6 +53,7 @@ Route::post('/login', function () {
         // Registrar en bitácora con IP y fecha del cliente
         \App\Models\Bitacora::create([
             'accion' => 'Usuario inició sesión en el sistema',
+            'fecha' => now(), // Establecer fecha del servidor en zona horaria correcta
             'ip' => $ipReal,
             'id_usuario' => auth()->id(),
             'fecha_cliente' => $fechaCliente,
@@ -76,6 +77,7 @@ Route::post('/login', function () {
     // Registrar intento fallido
     \App\Models\Bitacora::create([
         'accion' => "Intento de inicio de sesión fallido con email: " . request()->email,
+        'fecha' => now(), // Establecer fecha del servidor en zona horaria correcta
         'ip' => $ipReal,
         'id_usuario' => null,
         'fecha_cliente' => $fechaCliente,
@@ -94,6 +96,7 @@ Route::post('/logout', function () {
     // Registrar logout antes de cerrar sesión
     \App\Models\Bitacora::create([
         'accion' => 'Usuario cerró sesión',
+        'fecha' => now(), // Establecer fecha del servidor en zona horaria correcta
         'ip' => $ipReal,
         'id_usuario' => auth()->id(),
         'fecha_cliente' => $fechaCliente,
