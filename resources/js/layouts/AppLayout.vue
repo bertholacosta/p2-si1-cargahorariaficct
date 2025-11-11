@@ -231,6 +231,7 @@ watch(() => page.props.flash, (flash: any) => {
 
 const allMenuItems = [
   { label: 'Inicio', icon: 'pi pi-home', route: '/', permiso: null },
+  { label: 'Asistencias', icon: 'pi pi-check-circle', route: '/asistencias', permiso: 'asistencias.ver' },
   { label: 'Asignaciones', icon: 'pi pi-calendar', route: '/asignaciones', permiso: 'asignaciones.ver' },
   { label: 'Gestiones', icon: 'pi pi-history', route: '/gestiones', permiso: 'gestiones.ver' },
   { label: 'Docentes', icon: 'pi pi-id-card', route: '/docentes', permiso: 'docentes.ver' },
@@ -252,6 +253,7 @@ const adminMenuItems = [
   { label: 'Usuarios', icon: 'pi pi-users', route: '/usuarios', permiso: 'usuarios.ver' },
   { label: 'Roles', icon: 'pi pi-shield', route: '/roles', permiso: 'roles.ver' },
   { label: 'Permisos', icon: 'pi pi-lock', route: '/permisos', permiso: 'permisos.ver' },
+  { label: 'Días No Laborables', icon: 'pi pi-calendar-times', route: '/dias-no-laborables', permiso: 'asistencias.gestionar' },
   { label: 'Bitácora', icon: 'pi pi-file-edit', route: '/bitacora', permiso: 'bitacora.ver' },
 ];
 

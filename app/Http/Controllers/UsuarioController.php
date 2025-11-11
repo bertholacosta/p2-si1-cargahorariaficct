@@ -4,10 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Usuario;
 use App\Models\Rol;
+use App\Imports\DocentesImport;
+use App\Exports\PlantillaDocentesExport;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Helpers\BitacoraHelper;
 
 class UsuarioController extends Controller
 {
@@ -82,5 +86,64 @@ class UsuarioController extends Controller
         $usuario->delete();
 
         return redirect()->back()->with('success', 'Usuario eliminado exitosamente.');
+    }
+
+    /**
+     * Descargar plantilla de Excel para importación de docentes
+     */
+    public function descargarPlantilla()
+    {
+        return Excel::download(
+            new PlantillaDocentesExport(), 
+            'plantilla_docentes_' . date('Y-m-d') . '.xlsx'
+        );
+    }
+
+    /**
+     * Importar docentes desde archivo Excel/CSV
+     */
+    public function importar(Request $request)
+    {
+        $request->validate([
+            'archivo' => 'required|file|mimes:xlsx,xls,csv|max:10240', // Max 10MB
+        ]);
+
+        try {
+            $import = new DocentesImport();
+            Excel::import($import, $request->file('archivo'));
+
+            $resultados = $import->getResultados();
+            
+            // Contar resultados
+            $creados = collect($resultados)->where('estado', 'creado')->count();
+            $omitidos = collect($resultados)->where('estado', 'omitido')->count();
+            $errores = collect($resultados)->where('estado', 'error')->count();
+
+            // Registrar en bitácora
+            BitacoraHelper::registrar(
+                "Importó {$creados} docentes desde archivo Excel/CSV. Omitidos: {$omitidos}, Errores: {$errores}"
+            );
+
+            // Guardar resultados en sesión para mostrarlos
+            session(['resultados_importacion' => $resultados]);
+
+            return redirect()->route('usuarios.index')
+                ->with('success', "Importación completada: {$creados} creados, {$omitidos} omitidos, {$errores} errores");
+
+        } catch (\Exception $e) {
+            return redirect()->route('usuarios.index')
+                ->with('error', 'Error al importar el archivo: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener resultados de la última importación
+     */
+    public function resultadosImportacion()
+    {
+        $resultados = session('resultados_importacion', []);
+        session()->forget('resultados_importacion');
+        
+        return response()->json($resultados);
     }
 }

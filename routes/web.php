@@ -77,6 +77,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/usuarios', [UsuarioController::class, 'store'])->middleware('permiso:usuarios.crear')->name('usuarios.store');
     Route::put('/usuarios/{usuario}', [UsuarioController::class, 'update'])->middleware('permiso:usuarios.editar')->name('usuarios.update');
     Route::delete('/usuarios/{usuario}', [UsuarioController::class, 'destroy'])->middleware('permiso:usuarios.eliminar')->name('usuarios.destroy');
+    Route::get('/usuarios/plantilla/descargar', [UsuarioController::class, 'descargarPlantilla'])->middleware('permiso:usuarios.crear')->name('usuarios.plantilla');
+    Route::post('/usuarios/importar', [UsuarioController::class, 'importar'])->middleware('permiso:usuarios.crear')->name('usuarios.importar');
+    Route::get('/usuarios/importar/resultados', [UsuarioController::class, 'resultadosImportacion'])->middleware('permiso:usuarios.ver')->name('usuarios.resultados');
     
     // Roles y permisos
     Route::get('/roles', [RolController::class, 'index'])->middleware('permiso:roles.ver')->name('roles.index');
@@ -181,4 +184,39 @@ Route::middleware('auth')->group(function () {
     Route::get('/bitacora/exportar', [BitacoraController::class, 'exportar'])
         ->middleware('permiso:bitacora.exportar')
         ->name('bitacora.exportar');
+    
+    // Asistencias
+    Route::get('/asistencias', [\App\Http\Controllers\AsistenciaController::class, 'index'])
+        ->name('asistencias.index');
+    Route::post('/asistencias/registrar', [\App\Http\Controllers\AsistenciaController::class, 'registrar'])
+        ->name('asistencias.registrar');
+    Route::get('/asistencias/reporte', [\App\Http\Controllers\AsistenciaController::class, 'reporte'])
+        ->middleware('permiso:asistencias.gestionar')
+        ->name('asistencias.reporte');
+    Route::put('/asistencias/{id}', [\App\Http\Controllers\AsistenciaController::class, 'actualizar'])
+        ->middleware('permiso:asistencias.gestionar')
+        ->name('asistencias.actualizar');
+    Route::post('/asistencias/justificar', [\App\Http\Controllers\AsistenciaController::class, 'justificar'])
+        ->name('asistencias.justificar');
+    Route::get('/asistencias/estadisticas/{codigoDocente}', [\App\Http\Controllers\AsistenciaController::class, 'estadisticas'])
+        ->name('asistencias.estadisticas');
+    Route::post('/asistencias/faltas-automaticas', [\App\Http\Controllers\AsistenciaController::class, 'registrarFaltasAutomaticas'])
+        ->middleware('permiso:asistencias.gestionar')
+        ->name('asistencias.faltas-automaticas');
+    
+    // Días No Laborables
+    Route::get('/dias-no-laborables', [\App\Http\Controllers\DiaNoLaborableController::class, 'index'])
+        ->middleware('permiso:asistencias.gestionar')
+        ->name('dias-no-laborables.index');
+    Route::post('/dias-no-laborables', [\App\Http\Controllers\DiaNoLaborableController::class, 'store'])
+        ->middleware('permiso:asistencias.gestionar')
+        ->name('dias-no-laborables.store');
+    Route::put('/dias-no-laborables/{id}', [\App\Http\Controllers\DiaNoLaborableController::class, 'update'])
+        ->middleware('permiso:asistencias.gestionar')
+        ->name('dias-no-laborables.update');
+    Route::delete('/dias-no-laborables/{id}', [\App\Http\Controllers\DiaNoLaborableController::class, 'destroy'])
+        ->middleware('permiso:asistencias.gestionar')
+        ->name('dias-no-laborables.destroy');
+    Route::get('/dias-no-laborables/mes', [\App\Http\Controllers\DiaNoLaborableController::class, 'delMes'])
+        ->name('dias-no-laborables.mes');
 });
