@@ -37,7 +37,7 @@ class Bitacora extends Model
     {
         self::create([
             'accion' => $accion,
-            'ip' => $ip ?? request()->ip(),
+            'ip' => $ip ?? \App\Helpers\BitacoraHelper::obtenerIpReal(),
             'id_usuario' => $usuarioId ?? auth()->id(),
         ]);
     }

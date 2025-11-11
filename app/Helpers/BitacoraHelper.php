@@ -7,6 +7,45 @@ use App\Models\Bitacora;
 class BitacoraHelper
 {
     /**
+     * Obtener la IP real del cliente (considerando proxies y load balancers)
+     */
+    public static function obtenerIpReal(): string
+    {
+        // Verificar headers en orden de preferencia
+        $headers = [
+            'HTTP_CF_CONNECTING_IP',     // Cloudflare
+            'HTTP_X_REAL_IP',             // Nginx proxy
+            'HTTP_X_FORWARDED_FOR',       // Proxy estándar
+            'HTTP_CLIENT_IP',             // Proxy
+            'HTTP_X_FORWARDED',
+            'HTTP_X_CLUSTER_CLIENT_IP',
+            'HTTP_FORWARDED_FOR',
+            'HTTP_FORWARDED',
+            'REMOTE_ADDR'                 // Fallback
+        ];
+
+        foreach ($headers as $header) {
+            if (!empty($_SERVER[$header])) {
+                $ip = $_SERVER[$header];
+                
+                // Si X-Forwarded-For contiene múltiples IPs, tomar la primera (cliente original)
+                if (strpos($ip, ',') !== false) {
+                    $ips = explode(',', $ip);
+                    $ip = trim($ips[0]);
+                }
+                
+                // Validar que sea una IP válida
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false) {
+                    return $ip;
+                }
+            }
+        }
+
+        // Fallback a la IP del request de Laravel
+        return request()->ip() ?? '0.0.0.0';
+    }
+
+    /**
      * Registrar login exitoso
      */
     public static function loginExitoso(int $usuarioId, string $ip): void

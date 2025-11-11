@@ -46,22 +46,28 @@ Route::post('/login', function () {
     if (auth()->attempt(request()->only('email', 'password'), request()->boolean('remember'))) {
         request()->session()->regenerate();
         
+        // Obtener IP real del cliente
+        $ipReal = \App\Helpers\BitacoraHelper::obtenerIpReal();
+        
         // Registrar en bitácora
-        \App\Helpers\BitacoraHelper::loginExitoso(auth()->id(), request()->ip());
+        \App\Helpers\BitacoraHelper::loginExitoso(auth()->id(), $ipReal);
         
         // Crear notificación de inicio de sesión
         $notificacionService = app(\App\Services\NotificacionService::class);
         $notificacionService->crearNotificacionInicioSesion(
             auth()->id(),
-            request()->ip(),
+            $ipReal,
             now()
         );
         
         return redirect()->intended('/');
     }
 
+    // Obtener IP real del cliente
+    $ipReal = \App\Helpers\BitacoraHelper::obtenerIpReal();
+    
     // Registrar intento fallido
-    \App\Helpers\BitacoraHelper::loginFallido(request()->email, request()->ip());
+    \App\Helpers\BitacoraHelper::loginFallido(request()->email, $ipReal);
 
     return back()->withErrors([
         'email' => 'Las credenciales no coinciden con nuestros registros.',
@@ -69,8 +75,11 @@ Route::post('/login', function () {
 });
 
 Route::post('/logout', function () {
+    // Obtener IP real del cliente
+    $ipReal = \App\Helpers\BitacoraHelper::obtenerIpReal();
+    
     // Registrar logout antes de cerrar sesión
-    \App\Helpers\BitacoraHelper::logout(auth()->id(), request()->ip());
+    \App\Helpers\BitacoraHelper::logout(auth()->id(), $ipReal);
     
     auth()->logout();
     request()->session()->invalidate();
