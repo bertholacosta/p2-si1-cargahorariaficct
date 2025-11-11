@@ -163,19 +163,24 @@
     <!-- Main Content -->
     <div class="flex-1 flex flex-col min-w-0">
       <!-- Top Navbar -->
-      <nav class="bg-white dark:bg-gray-800 shadow-sm h-16 flex items-center px-4 lg:px-6">
-        <!-- Botón menú para móvil (solo cuando sidebar está oculto) -->
-        <Button
-          v-if="!sidebarOpen && isMobile"
-          icon="pi pi-bars"
-          @click="openSidebar"
-          text
-          rounded
-          class="mr-3 text-gray-600 dark:text-gray-300"
-        />
-        <h2 class="text-lg lg:text-xl font-semibold text-gray-800 dark:text-white truncate">
-          {{ title }}
-        </h2>
+      <nav class="bg-white dark:bg-gray-800 shadow-sm h-16 flex items-center justify-between px-4 lg:px-6">
+        <div class="flex items-center">
+          <!-- Botón menú para móvil (solo cuando sidebar está oculto) -->
+          <Button
+            v-if="!sidebarOpen && isMobile"
+            icon="pi pi-bars"
+            @click="openSidebar"
+            text
+            rounded
+            class="mr-3 text-gray-600 dark:text-gray-300"
+          />
+          <h2 class="text-lg lg:text-xl font-semibold text-gray-800 dark:text-white truncate">
+            {{ title }}
+          </h2>
+        </div>
+        
+        <!-- Notificaciones -->
+        <NotificacionesPanel />
       </nav>
 
       <!-- Content Area -->
@@ -188,6 +193,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import NotificacionesPanel from '@/components/NotificacionesPanel.vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { usePermissions } from '@/composables/usePermissions';
 import { useToast } from 'primevue/usetoast';

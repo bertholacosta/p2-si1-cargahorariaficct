@@ -49,6 +49,14 @@ Route::post('/login', function () {
         // Registrar en bitácora
         \App\Helpers\BitacoraHelper::loginExitoso(auth()->id(), request()->ip());
         
+        // Crear notificación de inicio de sesión
+        $notificacionService = app(\App\Services\NotificacionService::class);
+        $notificacionService->crearNotificacionInicioSesion(
+            auth()->id(),
+            request()->ip(),
+            now()
+        );
+        
         return redirect()->intended('/');
     }
 
@@ -219,4 +227,24 @@ Route::middleware('auth')->group(function () {
         ->name('dias-no-laborables.destroy');
     Route::get('/dias-no-laborables/mes', [\App\Http\Controllers\DiaNoLaborableController::class, 'delMes'])
         ->name('dias-no-laborables.mes');
+    
+    // Notificaciones
+    Route::get('/notificaciones', [\App\Http\Controllers\NotificacionController::class, 'index'])
+        ->name('notificaciones.index');
+    Route::get('/notificaciones/contador', [\App\Http\Controllers\NotificacionController::class, 'contarNoLeidas'])
+        ->name('notificaciones.contador');
+    Route::post('/notificaciones/{id}/leer', [\App\Http\Controllers\NotificacionController::class, 'marcarComoLeida'])
+        ->name('notificaciones.leer');
+    Route::post('/notificaciones/leer-todas', [\App\Http\Controllers\NotificacionController::class, 'marcarTodasComoLeidas'])
+        ->name('notificaciones.leer-todas');
+    Route::delete('/notificaciones/{id}', [\App\Http\Controllers\NotificacionController::class, 'eliminar'])
+        ->name('notificaciones.eliminar');
+    
+    // Gestión de notificaciones (Admin)
+    Route::get('/notificaciones/gestion', [\App\Http\Controllers\NotificacionController::class, 'gestionAdmin'])
+        ->middleware('permiso:usuarios.gestionar')
+        ->name('notificaciones.gestion');
+    Route::post('/notificaciones/mensaje-masivo', [\App\Http\Controllers\NotificacionController::class, 'enviarMensajeMasivo'])
+        ->middleware('permiso:usuarios.gestionar')
+        ->name('notificaciones.mensaje-masivo');
 });
