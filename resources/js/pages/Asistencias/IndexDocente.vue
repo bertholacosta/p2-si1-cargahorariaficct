@@ -154,7 +154,7 @@
                   </div>
                 </div>
 
-                <div class="flex gap-2">
+                <div class="flex flex-col sm:flex-row gap-2">
                   <Button
                     v-if="clase.puede_registrar && !clase.ya_registrada"
                     label="Registrar Asistencia"
@@ -162,6 +162,15 @@
                     @click="confirmarRegistro(clase)"
                     :loading="registrandoAsistencia"
                     severity="success"
+                    class="w-full md:w-auto"
+                  />
+                  <Button
+                    v-if="clase.puede_registrar && !clase.ya_registrada"
+                    label="Generar QR"
+                    icon="pi pi-qrcode"
+                    @click="abrirGeneradorQR(clase.asignacion.id)"
+                    severity="info"
+                    outlined
                     class="w-full md:w-auto"
                   />
                   <Button
@@ -466,6 +475,27 @@
           />
         </template>
       </Dialog>
+
+      <!-- Modales de QR -->
+      <QRGenerador
+        v-model:visible="qrGeneradorVisible"
+        :idAsignacion="asignacionQRSeleccionada"
+        @qr-generado="onQRGenerado"
+      />
+
+      <QRScanner
+        v-model:visible="qrScannerVisible"
+        @asistencia-registrada="onAsistenciaRegistrada"
+      />
+
+      <!-- Botón flotante para escanear QR -->
+      <Button
+        icon="pi pi-camera"
+        class="fixed bottom-6 right-6 w-16 h-16 rounded-full shadow-lg"
+        severity="info"
+        @click="abrirEscanerQR"
+        v-tooltip.left="'Escanear QR'"
+      />
     </div>
   </AppLayout>
 </template>
@@ -482,6 +512,8 @@ import Tag from 'primevue/tag';
 import Select from 'primevue/select';
 import Dialog from 'primevue/dialog';
 import Textarea from 'primevue/textarea';
+import QRGenerador from '@/components/QRGenerador.vue';
+import QRScanner from '@/components/QRScanner.vue';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -506,6 +538,11 @@ const registrandoAsistencia = ref(false);
 const cargandoAsistencias = ref(false);
 const archivoSeleccionado = ref<File | null>(null);
 const archivoInput = ref<HTMLInputElement | null>(null);
+
+// QR
+const qrGeneradorVisible = ref(false);
+const qrScannerVisible = ref(false);
+const asignacionQRSeleccionada = ref<number | null>(null);
 
 // Fecha de hoy formateada
 const fechaHoy = computed(() => {
@@ -640,5 +677,25 @@ const getEstadoIcon = (estado: string) => {
     default:
       return '';
   }
+};
+
+// Funciones QR
+const abrirGeneradorQR = (idAsignacion: number) => {
+  asignacionQRSeleccionada.value = idAsignacion;
+  qrGeneradorVisible.value = true;
+};
+
+const abrirEscanerQR = () => {
+  qrScannerVisible.value = true;
+};
+
+const onQRGenerado = (data: any) => {
+  console.log('QR generado:', data);
+};
+
+const onAsistenciaRegistrada = (data: any) => {
+  console.log('Asistencia registrada vía QR:', data);
+  // Recargar la página para actualizar las asistencias
+  router.reload({ only: ['clasesHoy', 'asistencias', 'estadisticas'] });
 };
 </script>

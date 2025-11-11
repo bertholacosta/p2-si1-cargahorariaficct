@@ -229,6 +229,16 @@ Route::middleware('auth')->group(function () {
         ->middleware('permiso:asistencias.gestionar')
         ->name('asistencias.faltas-automaticas');
     
+    // QR Asistencias
+    Route::post('/asistencias/qr/generar', [\App\Http\Controllers\QRAsistenciaController::class, 'generar'])
+        ->name('qr.generar');
+    Route::post('/asistencias/qr/verificar/{token}', [\App\Http\Controllers\QRAsistenciaController::class, 'verificar'])
+        ->name('qr.verificar');
+    Route::get('/asistencias/qr/info/{token}', [\App\Http\Controllers\QRAsistenciaController::class, 'info'])
+        ->name('qr.info');
+    Route::post('/asistencias/qr/invalidar', [\App\Http\Controllers\QRAsistenciaController::class, 'invalidar'])
+        ->name('qr.invalidar');
+    
     // Días No Laborables
     Route::get('/dias-no-laborables', [\App\Http\Controllers\DiaNoLaborableController::class, 'index'])
         ->middleware('permiso:asistencias.gestionar')

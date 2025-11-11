@@ -18,6 +18,14 @@ class Asignacion extends Model
         'id_horario',
         'id_aula',
         'id_gestion',
+        'qr_token',
+        'qr_generado_en',
+        'qr_duracion_minutos',
+    ];
+
+    protected $casts = [
+        'qr_generado_en' => 'datetime',
+        'qr_duracion_minutos' => 'integer',
     ];
 
     /**
@@ -58,5 +66,44 @@ class Asignacion extends Model
     public function gestion(): BelongsTo
     {
         return $this->belongsTo(Gestion::class, 'id_gestion');
+    }
+
+    /**
+     * Generar un token QR único para esta asignación
+     */
+    public function generarTokenQR(int $duracionMinutos = 180): string
+    {
+        $this->qr_token = bin2hex(random_bytes(32));
+        $this->qr_generado_en = now();
+        $this->qr_duracion_minutos = $duracionMinutos;
+        $this->save();
+
+        return $this->qr_token;
+    }
+
+    /**
+     * Verificar si el token QR es válido (no expirado)
+     */
+    public function qrEsValido(): bool
+    {
+        if (!$this->qr_token || !$this->qr_generado_en) {
+            return false;
+        }
+
+        $expiracion = $this->qr_generado_en->addMinutes($this->qr_duracion_minutos);
+        return now()->lessThanOrEqualTo($expiracion);
+    }
+
+    /**
+     * Obtener minutos restantes de validez del QR
+     */
+    public function minutosRestantesQR(): int
+    {
+        if (!$this->qrEsValido()) {
+            return 0;
+        }
+
+        $expiracion = $this->qr_generado_en->addMinutes($this->qr_duracion_minutos);
+        return now()->diffInMinutes($expiracion, false);
     }
 }
