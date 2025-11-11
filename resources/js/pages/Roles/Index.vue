@@ -155,7 +155,6 @@
           <Button
             label="Guardar Permisos"
             @click="guardarPermisos"
-            :loading="permisosForm.processing"
             size="small"
           />
         </div>
@@ -203,10 +202,6 @@ const permisosSeleccionados = ref<number[]>([]);
 const form = useForm({
   nombre: '',
   descripcion: '',
-});
-
-const permisosForm = useForm({
-  permisos: [] as number[],
 });
 
 const openCreateDialog = () => {
@@ -263,13 +258,28 @@ const submitForm = () => {
 };
 
 const guardarPermisos = () => {
-  if (!currentRol.value) return;
+  if (!currentRol.value) {
+    console.error('No hay rol seleccionado');
+    return;
+  }
 
-  permisosForm.permisos = permisosSeleccionados.value;
-  permisosForm.put(`/roles/${currentRol.value.id}`, {
+  console.log('Guardando permisos para rol:', currentRol.value);
+  console.log('Permisos seleccionados:', permisosSeleccionados.value);
+
+  // Enviar tanto los datos del rol como los permisos
+  router.put(`/roles/${currentRol.value.id}`, {
+    nombre: currentRol.value.nombre,
+    descripcion: currentRol.value.descripcion,
+    permisos: permisosSeleccionados.value,
+  }, {
     onSuccess: () => {
+      console.log('Permisos guardados exitosamente');
       permisosDialogVisible.value = false;
     },
+    onError: (errors) => {
+      console.error('Error al guardar permisos:', errors);
+    },
+    preserveScroll: true,
   });
 };
 

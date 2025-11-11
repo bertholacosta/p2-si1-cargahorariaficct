@@ -14,22 +14,19 @@ class RolController extends Controller
      */
     public function index()
     {
-        $roles = Rol::withCount('permisos')
-            ->orderBy('nombre')
-            ->get()
-            ->map(function ($rol) {
-                return [
-                    'id' => $rol->id,
-                    'nombre' => $rol->nombre,
-                    'descripcion' => $rol->descripcion,
-                    'permisos_count' => $rol->permisos_count,
-                ];
-            });
+        // Cachear permisos por 1 hora ya que no cambian frecuentemente
+        $permisos = cache()->remember('permisos_agrupados', 3600, function () {
+            return Permiso::select('id', 'nombre', 'slug', 'modulo', 'descripcion')
+                ->orderBy('modulo')
+                ->orderBy('nombre')
+                ->get()
+                ->groupBy('modulo');
+        });
 
-        $permisos = Permiso::orderBy('modulo')
+        $roles = Rol::select('id', 'nombre', 'descripcion')
+            ->withCount('permisos')
             ->orderBy('nombre')
-            ->get()
-            ->groupBy('modulo');
+            ->get();
 
         return Inertia::render('Roles/Index', [
             'roles' => $roles,
