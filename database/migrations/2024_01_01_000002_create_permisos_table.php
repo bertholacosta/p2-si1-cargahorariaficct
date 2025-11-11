@@ -13,7 +13,10 @@ return new class extends Migration
     {
         Schema::create('permiso', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre', 100)->unique();
+            $table->string('nombre', 100);
+            $table->string('slug', 100)->unique();
+            $table->string('modulo', 100)->nullable();
+            $table->text('descripcion')->nullable();
             $table->timestamps();
         });
     }

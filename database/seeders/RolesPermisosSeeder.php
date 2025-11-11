@@ -16,18 +16,18 @@ class RolesPermisosSeeder extends Seeder
     {
         // Crear Permisos
         $permisos = [
-            'ver_usuarios',
-            'crear_usuarios',
-            'editar_usuarios',
-            'eliminar_usuarios',
-            'ver_horarios',
-            'crear_horarios',
-            'editar_horarios',
-            'eliminar_horarios',
+            ['nombre' => 'Ver usuarios', 'slug' => 'ver_usuarios', 'modulo' => 'Usuarios'],
+            ['nombre' => 'Crear usuarios', 'slug' => 'crear_usuarios', 'modulo' => 'Usuarios'],
+            ['nombre' => 'Editar usuarios', 'slug' => 'editar_usuarios', 'modulo' => 'Usuarios'],
+            ['nombre' => 'Eliminar usuarios', 'slug' => 'eliminar_usuarios', 'modulo' => 'Usuarios'],
+            ['nombre' => 'Ver horarios', 'slug' => 'ver_horarios', 'modulo' => 'Horarios'],
+            ['nombre' => 'Crear horarios', 'slug' => 'crear_horarios', 'modulo' => 'Horarios'],
+            ['nombre' => 'Editar horarios', 'slug' => 'editar_horarios', 'modulo' => 'Horarios'],
+            ['nombre' => 'Eliminar horarios', 'slug' => 'eliminar_horarios', 'modulo' => 'Horarios'],
         ];
 
         foreach ($permisos as $permiso) {
-            Permiso::create(['nombre' => $permiso]);
+            Permiso::create($permiso);
         }
 
         // Crear Roles
@@ -40,12 +40,12 @@ class RolesPermisosSeeder extends Seeder
 
         // Asignar permisos específicos al Docente
         $docenteRol->permisos()->attach(
-            Permiso::whereIn('nombre', ['ver_horarios', 'crear_horarios', 'editar_horarios'])->get()
+            Permiso::whereIn('slug', ['ver_horarios', 'crear_horarios', 'editar_horarios'])->get()
         );
 
         // Asignar permisos específicos al Estudiante
         $estudianteRol->permisos()->attach(
-            Permiso::where('nombre', 'ver_horarios')->get()
+            Permiso::where('slug', 'ver_horarios')->get()
         );
 
         // Crear usuario administrador por defecto
