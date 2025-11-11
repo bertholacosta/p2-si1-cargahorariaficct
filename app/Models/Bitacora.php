@@ -14,12 +14,14 @@ class Bitacora extends Model
     protected $fillable = [
         'accion',
         'fecha',
+        'fecha_cliente',
         'ip',
         'id_usuario',
     ];
 
     protected $casts = [
         'fecha' => 'datetime',
+        'fecha_cliente' => 'datetime',
     ];
 
     /**
@@ -33,12 +35,19 @@ class Bitacora extends Model
     /**
      * Registrar una acción en la bitácora
      */
-    public static function registrar(string $accion, ?int $usuarioId = null, ?string $ip = null): void
+    public static function registrar(string $accion, ?int $usuarioId = null, ?string $ip = null, $fechaCliente = null): void
     {
-        self::create([
+        $data = [
             'accion' => $accion,
             'ip' => $ip ?? \App\Helpers\BitacoraHelper::obtenerIpReal(),
             'id_usuario' => $usuarioId ?? auth()->id(),
-        ]);
+        ];
+
+        // Si se proporciona fecha del cliente, guardarla
+        if ($fechaCliente !== null) {
+            $data['fecha_cliente'] = $fechaCliente;
+        }
+
+        self::create($data);
     }
 }

@@ -113,4 +113,37 @@ class BitacoraHelper
             $usuarioId
         );
     }
+
+    /**
+     * Método genérico para registrar acciones en la bitácora
+     * Compatible con llamadas antiguas de 4 parámetros
+     * 
+     * @param string $accion - Descripción de la acción
+     * @param string|null $entidad - Tipo de entidad (legacy, ahora ignorado)
+     * @param int|null $idEntidad - ID de la entidad (legacy, ahora ignorado)
+     * @param string|null $detalles - Detalles adicionales (legacy, se concatena con acción)
+     * @param string|null $fechaCliente - Fecha/hora del cliente en formato ISO 8601
+     */
+    public static function registrar(
+        string $accion,
+        ?string $entidad = null,
+        ?int $idEntidad = null,
+        ?string $detalles = null,
+        ?string $fechaCliente = null
+    ): void {
+        // Si se pasaron los parámetros legacy (entidad, idEntidad, detalles)
+        // los usamos para enriquecer la acción
+        if ($detalles !== null) {
+            $accion = $detalles;
+        }
+
+        $ip = self::obtenerIpReal();
+        
+        Bitacora::registrar(
+            $accion,
+            auth()->id(),
+            $ip,
+            $fechaCliente
+        );
+    }
 }

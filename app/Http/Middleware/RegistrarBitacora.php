@@ -38,7 +38,10 @@ class RegistrarBitacora
         $accion = $this->generarDescripcionAccion($metodo, $ruta, $request);
 
         if ($accion) {
-            Bitacora::registrar($accion, auth()->id(), $request->ip());
+            $ipReal = \App\Helpers\BitacoraHelper::obtenerIpReal();
+            $fechaCliente = $request->header('X-Client-Time');
+            
+            Bitacora::registrar($accion, auth()->id(), $ipReal, $fechaCliente);
         }
     }
 

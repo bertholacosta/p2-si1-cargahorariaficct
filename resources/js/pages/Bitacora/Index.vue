@@ -66,10 +66,20 @@
             :paginator="false"
             class="text-sm"
           >
-            <Column field="id" header="ID" style="width: 80px" />
-            <Column field="fecha" header="Fecha" style="width: 180px" />
-            <Column field="usuario_nombre" header="Usuario" style="width: 200px" />
-            <Column field="ip" header="IP" style="width: 150px" />
+            <Column field="id" header="ID" style="width: 70px" />
+            <Column field="usuario_nombre" header="Usuario" style="width: 150px" />
+            <Column field="ip" header="IP" style="width: 140px" />
+            <Column header="Fecha Servidor" style="width: 160px">
+              <template #body="{ data }">
+                <span class="text-gray-700">{{ data.fecha }}</span>
+              </template>
+            </Column>
+            <Column header="Fecha Cliente" style="width: 160px">
+              <template #body="{ data }">
+                <span v-if="data.fecha_cliente" class="text-blue-600">{{ data.fecha_cliente }}</span>
+                <span v-else class="text-gray-400 italic">N/A</span>
+              </template>
+            </Column>
             <Column field="accion" header="Acción">
               <template #body="{ data }">
                 <span class="text-gray-700">{{ data.accion }}</span>
@@ -115,6 +125,7 @@ interface Registro {
   id: number;
   accion: string;
   fecha: string;
+  fecha_cliente: string | null;
   ip: string | null;
   usuario_nombre: string;
 }

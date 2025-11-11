@@ -80,9 +80,13 @@ import Button from 'primevue/button';
 const form = useForm({
   email: '',
   password: '',
+  client_time: '',
 });
 
 const handleLogin = () => {
+  // Capturar la fecha/hora del cliente antes de enviar
+  form.client_time = new Date().toISOString();
+  
   form.post('/login', {
     onSuccess: () => {
       // Redirige al dashboard después del login exitoso

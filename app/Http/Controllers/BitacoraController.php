@@ -40,8 +40,9 @@ class BitacoraController extends Controller
                     'id' => $registro->id,
                     'accion' => $registro->accion,
                     'fecha' => $registro->fecha->format('d/m/Y H:i:s'),
+                    'fecha_cliente' => $registro->fecha_cliente ? $registro->fecha_cliente->format('d/m/Y H:i:s') : null,
                     'ip' => $registro->ip,
-                    'usuario_nombre' => $registro->usuario ? $registro->usuario->nombre : 'Usuario eliminado',
+                    'usuario_nombre' => $registro->usuario ? $registro->usuario->username : 'Usuario eliminado',
                 ];
             });
 
@@ -82,14 +83,15 @@ class BitacoraController extends Controller
 
         $registros = $query->orderBy('fecha', 'desc')->get();
 
-        $csv = "ID,Fecha,Usuario,IP,Acción\n";
+        $csv = "ID,Fecha Servidor,Fecha Cliente,Usuario,IP,Acción\n";
         
         foreach ($registros as $registro) {
             $csv .= sprintf(
-                "%d,%s,%s,%s,\"%s\"\n",
+                "%d,%s,%s,%s,%s,\"%s\"\n",
                 $registro->id,
                 $registro->fecha->format('d/m/Y H:i:s'),
-                $registro->usuario ? $registro->usuario->nombre : 'Usuario eliminado',
+                $registro->fecha_cliente ? $registro->fecha_cliente->format('d/m/Y H:i:s') : '',
+                $registro->usuario ? $registro->usuario->username : 'Usuario eliminado',
                 $registro->ip ?? '',
                 str_replace('"', '""', $registro->accion)
             );

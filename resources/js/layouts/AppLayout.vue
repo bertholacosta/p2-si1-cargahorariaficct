@@ -333,7 +333,10 @@ const isActive = (route: string) => {
 };
 
 const logout = () => {
-  router.post('/logout');
+  // Enviar la fecha/hora del cliente al hacer logout
+  router.post('/logout', {
+    client_time: new Date().toISOString(),
+  });
 };
 
 onMounted(() => {

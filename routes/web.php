@@ -46,18 +46,24 @@ Route::post('/login', function () {
     if (auth()->attempt(request()->only('email', 'password'), request()->boolean('remember'))) {
         request()->session()->regenerate();
         
-        // Obtener IP real del cliente
+        // Obtener IP real del cliente y fecha/hora del cliente
         $ipReal = \App\Helpers\BitacoraHelper::obtenerIpReal();
+        $fechaCliente = request()->header('X-Client-Time') ?? request()->input('client_time');
         
-        // Registrar en bitácora
-        \App\Helpers\BitacoraHelper::loginExitoso(auth()->id(), $ipReal);
+        // Registrar en bitácora con IP y fecha del cliente
+        \App\Models\Bitacora::create([
+            'accion' => 'Usuario inició sesión en el sistema',
+            'ip' => $ipReal,
+            'id_usuario' => auth()->id(),
+            'fecha_cliente' => $fechaCliente,
+        ]);
         
         // Crear notificación de inicio de sesión
         $notificacionService = app(\App\Services\NotificacionService::class);
         $notificacionService->crearNotificacionInicioSesion(
             auth()->id(),
             $ipReal,
-            now()
+            $fechaCliente ? \Carbon\Carbon::parse($fechaCliente) : now()
         );
         
         return redirect()->intended('/');
@@ -65,9 +71,15 @@ Route::post('/login', function () {
 
     // Obtener IP real del cliente
     $ipReal = \App\Helpers\BitacoraHelper::obtenerIpReal();
+    $fechaCliente = request()->header('X-Client-Time') ?? request()->input('client_time');
     
     // Registrar intento fallido
-    \App\Helpers\BitacoraHelper::loginFallido(request()->email, $ipReal);
+    \App\Models\Bitacora::create([
+        'accion' => "Intento de inicio de sesión fallido con email: " . request()->email,
+        'ip' => $ipReal,
+        'id_usuario' => null,
+        'fecha_cliente' => $fechaCliente,
+    ]);
 
     return back()->withErrors([
         'email' => 'Las credenciales no coinciden con nuestros registros.',
@@ -75,11 +87,17 @@ Route::post('/login', function () {
 });
 
 Route::post('/logout', function () {
-    // Obtener IP real del cliente
+    // Obtener IP real del cliente y fecha/hora del cliente
     $ipReal = \App\Helpers\BitacoraHelper::obtenerIpReal();
+    $fechaCliente = request()->header('X-Client-Time') ?? request()->input('client_time');
     
     // Registrar logout antes de cerrar sesión
-    \App\Helpers\BitacoraHelper::logout(auth()->id(), $ipReal);
+    \App\Models\Bitacora::create([
+        'accion' => 'Usuario cerró sesión',
+        'ip' => $ipReal,
+        'id_usuario' => auth()->id(),
+        'fecha_cliente' => $fechaCliente,
+    ]);
     
     auth()->logout();
     request()->session()->invalidate();
