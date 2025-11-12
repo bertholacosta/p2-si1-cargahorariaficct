@@ -13,9 +13,10 @@ class VerificarPermiso
      * Handle an incoming request.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  string  $permiso - Slug del permiso requerido (ej: 'usuarios.ver')
+     * @param  string  ...$permisos - Slug(s) del permiso requerido (ej: 'usuarios.ver' o 'usuarios.ver,usuarios.editar')
+     *                                 Si se pasan múltiples permisos, se evalúa con lógica OR (basta con tener uno)
      */
-    public function handle(Request $request, Closure $next, string $permiso): Response
+    public function handle(Request $request, Closure $next, string ...$permisos): Response
     {
         $user = auth()->user();
 
@@ -27,16 +28,24 @@ class VerificarPermiso
         // Cargar el rol y permisos del usuario
         $user->load('rol.permisos');
 
-        // Verificar si el usuario tiene el permiso
-        $tienePermiso = $user->rol
-            && $user->rol->permisos->contains('slug', $permiso);
+        // Verificar si el usuario tiene al menos uno de los permisos (OR logic)
+        $tienePermiso = false;
+        $permisosRequeridos = [];
+        
+        foreach ($permisos as $permiso) {
+            $permisosRequeridos[] = $permiso;
+            if ($user->rol && $user->rol->permisos->contains('slug', $permiso)) {
+                $tienePermiso = true;
+                break;
+            }
+        }
 
         if (!$tienePermiso) {
             // Registrar acceso denegado en bitácora
             BitacoraHelper::accesoDenegado(
                 $user->id,
                 $request->ip(),
-                "Intento de acceso a: {$request->path()} (requiere: {$permiso})"
+                "Intento de acceso a: {$request->path()} (requiere uno de: " . implode(', ', $permisosRequeridos) . ")"
             );
 
             // Redirigir con mensaje de error

@@ -224,6 +224,18 @@ class AsistenciaController extends Controller
             'archivo' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB máximo
         ]);
         
+        // Verificar que la asistencia pertenece al docente actual (si no es admin)
+        $user = auth()->user();
+        $asistencia = Asistencia::findOrFail($request->id_asistencia);
+        $esAdmin = $user->rol->permisos->contains('slug', 'asistencias.gestionar');
+        
+        if (!$esAdmin) {
+            $docente = Docente::where('id_usuario', $user->id)->first();
+            if (!$docente || $asistencia->id_docente !== $docente->codigo) {
+                return redirect()->back()->with('error', 'No puedes justificar la falta de otro docente.');
+            }
+        }
+        
         $archivo = null;
         if ($request->hasFile('archivo')) {
             $archivo = $request->file('archivo')->store('justificaciones', 'public');
@@ -258,6 +270,19 @@ class AsistenciaController extends Controller
         $request->validate([
             'id_gestion' => 'required|exists:gestion,id',
         ]);
+        
+        $user = auth()->user();
+        $esAdmin = $user->rol->permisos->contains('slug', 'asistencias.ver_todas');
+        
+        // Si no es admin, solo puede ver sus propias estadísticas
+        if (!$esAdmin) {
+            $docente = Docente::where('id_usuario', $user->id)->first();
+            if (!$docente || $docente->codigo !== $codigoDocente) {
+                return response()->json([
+                    'error' => 'No tienes permiso para ver las estadísticas de otro docente.'
+                ], 403);
+            }
+        }
         
         $estadisticas = $this->asistenciaService->generarEstadisticas(
             $codigoDocente,

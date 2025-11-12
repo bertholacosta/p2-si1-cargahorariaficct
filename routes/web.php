@@ -186,17 +186,25 @@ Route::middleware('auth')->group(function () {
     Route::delete('/horarios/{horario}', [HorarioController::class, 'destroy'])->middleware('permiso:horarios.eliminar')->name('horarios.destroy');
     
     // Asignaciones
-    Route::get('/asignaciones', [AsignacionController::class, 'index'])->middleware('permiso:asignaciones.ver')->name('asignaciones.index');
-    Route::post('/asignaciones', [AsignacionController::class, 'store'])->middleware('permiso:asignaciones.crear')->name('asignaciones.store');
-    Route::post('/asignaciones/multiple', [AsignacionController::class, 'storeMultiple'])->middleware('permiso:asignaciones.crear')->name('asignaciones.storeMultiple');
-    Route::delete('/asignaciones/{asignacion}', [AsignacionController::class, 'destroy'])->middleware('permiso:asignaciones.eliminar')->name('asignaciones.destroy');
+    Route::get('/asignaciones', [AsignacionController::class, 'index'])
+        ->middleware('permiso:asignaciones.ver,asignaciones.ver_propias')
+        ->name('asignaciones.index');
+    Route::post('/asignaciones', [AsignacionController::class, 'store'])
+        ->middleware('permiso:asignaciones.crear')
+        ->name('asignaciones.store');
+    Route::post('/asignaciones/multiple', [AsignacionController::class, 'storeMultiple'])
+        ->middleware('permiso:asignaciones.crear')
+        ->name('asignaciones.storeMultiple');
+    Route::delete('/asignaciones/{asignacion}', [AsignacionController::class, 'destroy'])
+        ->middleware('permiso:asignaciones.eliminar')
+        ->name('asignaciones.destroy');
     
     // Rutas adicionales para asignaciones
     Route::get('/asignaciones/docente/{codigo}', [AsignacionController::class, 'horarioDocente'])
-        ->middleware('permiso:asignaciones.ver')
+        ->middleware('permiso:asignaciones.ver,asignaciones.ver_propias')
         ->name('asignaciones.docente');
     Route::get('/asignaciones/aula/{id}', [AsignacionController::class, 'horarioAula'])
-        ->middleware('permiso:asignaciones.ver')
+        ->middleware('permiso:asignaciones.ver,asignaciones.ver_propias')
         ->name('asignaciones.aula');
     
     // Importación masiva de asignaciones (rutas específicas primero)
@@ -242,18 +250,22 @@ Route::middleware('auth')->group(function () {
     
     // Asistencias
     Route::get('/asistencias', [\App\Http\Controllers\AsistenciaController::class, 'index'])
+        ->middleware('permiso:asistencias.ver,asistencias.ver_todas') // Docente o Admin
         ->name('asistencias.index');
     Route::post('/asistencias/registrar', [\App\Http\Controllers\AsistenciaController::class, 'registrar'])
+        ->middleware('permiso:asistencias.registrar')
         ->name('asistencias.registrar');
     Route::get('/asistencias/reporte', [\App\Http\Controllers\AsistenciaController::class, 'reporte'])
-        ->middleware('permiso:asistencias.gestionar')
+        ->middleware('permiso:asistencias.reportes')
         ->name('asistencias.reporte');
     Route::put('/asistencias/{id}', [\App\Http\Controllers\AsistenciaController::class, 'actualizar'])
         ->middleware('permiso:asistencias.gestionar')
         ->name('asistencias.actualizar');
     Route::post('/asistencias/justificar', [\App\Http\Controllers\AsistenciaController::class, 'justificar'])
+        ->middleware('permiso:asistencias.justificar')
         ->name('asistencias.justificar');
     Route::get('/asistencias/estadisticas/{codigoDocente}', [\App\Http\Controllers\AsistenciaController::class, 'estadisticas'])
+        ->middleware('permiso:asistencias.ver,asistencias.ver_todas')
         ->name('asistencias.estadisticas');
     Route::post('/asistencias/faltas-automaticas', [\App\Http\Controllers\AsistenciaController::class, 'registrarFaltasAutomaticas'])
         ->middleware('permiso:asistencias.gestionar')

@@ -21,6 +21,20 @@ class AsignacionController extends Controller
      */
     public function index(Request $request)
     {
+        $user = auth()->user();
+        $esAdmin = $user->rol->permisos->contains('slug', 'asignaciones.ver');
+        $esDocente = $user->rol->permisos->contains('slug', 'asignaciones.ver_propias');
+        
+        // Si es docente, obtener su código
+        $codigoDocenteActual = null;
+        if ($esDocente && !$esAdmin) {
+            $docente = Docente::where('id_usuario', $user->id)->first();
+            if (!$docente) {
+                return redirect()->back()->with('error', 'No se encontró información del docente.');
+            }
+            $codigoDocenteActual = $docente->codigo;
+        }
+        
         // Obtener gestión seleccionada o la más reciente
         $gestionId = $request->input('gestion_id');
         
@@ -36,7 +50,11 @@ class AsignacionController extends Controller
             ->orderBy('semestre', 'desc')
             ->get();
 
+        // Solo admin ve todos los docentes
         $docentes = Docente::with('usuario')
+            ->when($codigoDocenteActual, function ($query) use ($codigoDocenteActual) {
+                return $query->where('codigo', $codigoDocenteActual);
+            })
             ->orderBy('apellidos')
             ->get()
             ->map(function ($docente) {
@@ -101,6 +119,10 @@ class AsignacionController extends Controller
                     'gestion'
                 ])
                 ->where('id_gestion', $gestionId)
+                // Si es docente, solo ver sus asignaciones
+                ->when($codigoDocenteActual, function ($query) use ($codigoDocenteActual) {
+                    return $query->where('id_docente', $codigoDocenteActual);
+                })
                 ->get()
                 ->map(function ($asignacion) {
                     return [
@@ -134,6 +156,8 @@ class AsignacionController extends Controller
             'horarios' => $horarios,
             'gruposMaterias' => $gruposMaterias,
             'asignaciones' => $asignaciones,
+            'esAdmin' => $esAdmin,
+            'soloLectura' => !$esAdmin, // Docentes solo pueden ver, no editar
         ]);
     }
 

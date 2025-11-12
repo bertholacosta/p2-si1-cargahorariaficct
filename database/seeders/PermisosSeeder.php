@@ -93,7 +93,8 @@ class PermisosSeeder extends Seeder
             ['nombre' => 'Eliminar horarios', 'slug' => 'horarios.eliminar', 'modulo' => 'Horarios', 'descripcion' => 'Puede eliminar horarios'],
 
             // Asignaciones
-            ['nombre' => 'Ver asignaciones', 'slug' => 'asignaciones.ver', 'modulo' => 'Asignaciones', 'descripcion' => 'Puede ver asignaciones de clases'],
+            ['nombre' => 'Ver todas las asignaciones', 'slug' => 'asignaciones.ver', 'modulo' => 'Asignaciones', 'descripcion' => 'Puede ver todas las asignaciones de clases (Admin)'],
+            ['nombre' => 'Ver mis asignaciones', 'slug' => 'asignaciones.ver_propias', 'modulo' => 'Asignaciones', 'descripcion' => 'Puede ver solo sus propias asignaciones (Docente)'],
             ['nombre' => 'Crear asignaciones', 'slug' => 'asignaciones.crear', 'modulo' => 'Asignaciones', 'descripcion' => 'Puede crear asignaciones de clases'],
             ['nombre' => 'Editar asignaciones', 'slug' => 'asignaciones.editar', 'modulo' => 'Asignaciones', 'descripcion' => 'Puede modificar asignaciones'],
             ['nombre' => 'Eliminar asignaciones', 'slug' => 'asignaciones.eliminar', 'modulo' => 'Asignaciones', 'descripcion' => 'Puede eliminar asignaciones'],

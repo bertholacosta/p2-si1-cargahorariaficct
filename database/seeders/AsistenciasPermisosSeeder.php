@@ -14,10 +14,18 @@ class AsistenciasPermisosSeeder extends Seeder
     {
         $permisos = [
             [
-                'nombre' => 'Ver Asistencias',
+                'nombre' => 'Ver Mis Asistencias',
                 'slug' => 'asistencias.ver',
                 'modulo' => 'Asistencias',
-                'descripcion' => 'Ver asistencias propias',
+                'descripcion' => 'Ver solo mis propias asistencias (Docente)',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'nombre' => 'Ver Todas las Asistencias',
+                'slug' => 'asistencias.ver_todas',
+                'modulo' => 'Asistencias',
+                'descripcion' => 'Ver asistencias de todos los docentes (Admin)',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -25,7 +33,7 @@ class AsistenciasPermisosSeeder extends Seeder
                 'nombre' => 'Registrar Asistencia',
                 'slug' => 'asistencias.registrar',
                 'modulo' => 'Asistencias',
-                'descripcion' => 'Registrar asistencia',
+                'descripcion' => 'Registrar mi propia asistencia (Docente)',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -33,7 +41,7 @@ class AsistenciasPermisosSeeder extends Seeder
                 'nombre' => 'Justificar Faltas',
                 'slug' => 'asistencias.justificar',
                 'modulo' => 'Asistencias',
-                'descripcion' => 'Justificar faltas',
+                'descripcion' => 'Justificar mis propias faltas (Docente)',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -41,7 +49,15 @@ class AsistenciasPermisosSeeder extends Seeder
                 'nombre' => 'Gestionar Asistencias',
                 'slug' => 'asistencias.gestionar',
                 'modulo' => 'Asistencias',
-                'descripcion' => 'Gestionar todas las asistencias (Admin)',
+                'descripcion' => 'Registrar/editar asistencias de cualquier docente (Admin)',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'nombre' => 'Generar Reportes de Asistencias',
+                'slug' => 'asistencias.reportes',
+                'modulo' => 'Asistencias',
+                'descripcion' => 'Generar reportes de asistencias (Admin)',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -92,8 +108,14 @@ class AsistenciasPermisosSeeder extends Seeder
         $rolDocente = DB::table('rol')->where('nombre', 'Docente')->first();
         
         if ($rolDocente) {
+            // Docentes solo ven y gestionan SUS PROPIAS asistencias
             $permisosDocente = DB::table('permiso')
-                ->whereIn('slug', ['asistencias.ver', 'asistencias.registrar', 'asistencias.justificar'])
+                ->whereIn('slug', [
+                    'asistencias.ver',           // Ver solo sus asistencias
+                    'asistencias.registrar',     // Registrar su asistencia
+                    'asistencias.justificar',    // Justificar sus faltas
+                    'asignaciones.ver_propias',  // Ver solo sus asignaciones
+                ])
                 ->pluck('id');
             
             foreach ($permisosDocente as $permisoId) {
@@ -112,7 +134,7 @@ class AsistenciasPermisosSeeder extends Seeder
                 }
             }
             
-            $this->command->info("✓ Permisos básicos asignados al rol Docente");
+            $this->command->info("✓ Permisos básicos asignados al rol Docente (solo datos propios)");
         }
 
         $this->command->info("\n✅ Permisos de Asistencias configurados correctamente");
