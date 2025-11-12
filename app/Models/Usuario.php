@@ -20,6 +20,7 @@ class Usuario extends Authenticatable
         'password',
         'email',
         'id_rol',
+        'notificaciones_inicio_sesion',
     ];
 
     protected $hidden = [
@@ -30,6 +31,7 @@ class Usuario extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'notificaciones_inicio_sesion' => 'boolean',
         ];
     }
 

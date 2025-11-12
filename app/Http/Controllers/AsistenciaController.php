@@ -89,13 +89,28 @@ class AsistenciaController extends Controller
                 $idGestion
             );
             
+            // Formatear gestiones con label para el dropdown
+            $gestiones = Gestion::orderBy('año', 'desc')
+                ->orderBy('semestre', 'desc')
+                ->get()
+                ->map(function ($gestion) {
+                    return [
+                        'id' => $gestion->id,
+                        'label' => $gestion->nombre_completo,
+                        'fecha_inicio' => $gestion->fecha_inicio->format('Y-m-d'),
+                        'fecha_fin' => $gestion->fecha_fin->format('Y-m-d'),
+                        'año' => $gestion->año,
+                        'semestre' => $gestion->semestre,
+                    ];
+                });
+            
             return Inertia::render('Asistencias/IndexDocente', [
                 'docente' => $docente,
                 'clasesHoy' => $clasesHoy,
                 'estadisticas' => $estadisticas,
                 'asistencias' => $asistencias,
                 'gestionActual' => $gestionActual,
-                'gestiones' => Gestion::orderBy('año', 'desc')->orderBy('semestre', 'desc')->get(),
+                'gestiones' => $gestiones,
             ]);
         }
     }

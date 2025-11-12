@@ -3,12 +3,62 @@
     <div class="container mx-auto px-4 py-6 max-w-7xl">
       <!-- Header -->
       <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">Enviar Notificaciones Masivas</h1>
-        <p class="text-sm text-gray-600 mt-1">Envía mensajes a múltiples usuarios</p>
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-800">Gestión de Notificaciones</h1>
+            <p class="text-sm text-gray-600 mt-1">Envía mensajes a usuarios individuales o múltiples usuarios</p>
+          </div>
+          <div class="flex gap-2">
+            <Button
+              label="Enviar Individual"
+              icon="pi pi-user"
+              @click="$inertia.visit('/notificaciones/enviar-individual')"
+              severity="info"
+            />
+          </div>
+        </div>
       </div>
 
-      <!-- Formulario de envío -->
-      <Card>
+      <!-- Tabs de navegación -->
+      <div class="mb-6">
+        <div class="border-b border-gray-200">
+          <nav class="flex space-x-4">
+            <button
+              @click="tabActual = 'masivo'"
+              :class="[
+                'py-3 px-4 font-medium text-sm border-b-2 transition-colors',
+                tabActual === 'masivo'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ]"
+            >
+              <i class="pi pi-users mr-2"></i>
+              Notificación Masiva
+            </button>
+            <button
+              @click="tabActual = 'estadisticas'"
+              :class="[
+                'py-3 px-4 font-medium text-sm border-b-2 transition-colors',
+                tabActual === 'estadisticas'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ]"
+            >
+              <i class="pi pi-chart-bar mr-2"></i>
+              Estadísticas
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      <!-- Formulario de envío masivo -->
+      <Card v-show="tabActual === 'masivo'">
+        <template #title>
+          <div class="flex items-center gap-2">
+            <i class="pi pi-send text-blue-600"></i>
+            <span>Enviar Notificación Masiva</span>
+          </div>
+        </template>
         <template #content>
           <div class="space-y-4">
             <!-- Selección de destinatarios -->
@@ -127,12 +177,12 @@
         </template>
       </Card>
 
-      <!-- Historial reciente (opcional) -->
-      <Card class="mt-6">
+      <!-- Estadísticas -->
+      <Card v-show="tabActual === 'estadisticas'">
         <template #title>
           <div class="flex items-center gap-2">
-            <i class="pi pi-history text-blue-600"></i>
-            <span>Estadísticas</span>
+            <i class="pi pi-chart-bar text-blue-600"></i>
+            <span>Estadísticas de Usuarios</span>
           </div>
         </template>
         <template #content>
@@ -184,6 +234,7 @@ const props = defineProps<{
 
 const toast = useToast();
 const enviando = ref(false);
+const tabActual = ref('masivo'); // 'masivo' o 'estadisticas'
 
 // Formulario
 const form = ref({

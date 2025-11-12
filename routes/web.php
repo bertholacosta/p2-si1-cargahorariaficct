@@ -313,7 +313,25 @@ Route::middleware('auth')->group(function () {
     Route::get('/notificaciones/gestion', [\App\Http\Controllers\NotificacionController::class, 'gestionAdmin'])
         ->middleware('permiso:usuarios.gestionar')
         ->name('notificaciones.gestion');
+    Route::get('/notificaciones/enviar-individual', [\App\Http\Controllers\NotificacionController::class, 'enviarIndividual'])
+        ->middleware('permiso:usuarios.gestionar')
+        ->name('notificaciones.enviar-individual');
     Route::post('/notificaciones/mensaje-masivo', [\App\Http\Controllers\NotificacionController::class, 'enviarMensajeMasivo'])
         ->middleware('permiso:usuarios.gestionar')
         ->name('notificaciones.mensaje-masivo');
+    Route::post('/notificaciones/enviar-a-usuario', [\App\Http\Controllers\NotificacionController::class, 'enviarAUsuario'])
+        ->middleware('permiso:usuarios.gestionar')
+        ->name('notificaciones.enviar-a-usuario');
+    Route::get('/notificaciones/obtener-usuarios', [\App\Http\Controllers\NotificacionController::class, 'obtenerUsuarios'])
+        ->middleware('permiso:usuarios.gestionar')
+        ->name('notificaciones.obtener-usuarios');
+    
+    // Configuración de notificaciones del usuario
+    Route::get('/notificaciones/configuracion-vista', function () {
+        return \Inertia\Inertia::render('Notificaciones/Configuracion');
+    })->name('notificaciones.configuracion.vista');
+    Route::get('/notificaciones/configuracion', [\App\Http\Controllers\NotificacionController::class, 'obtenerConfiguracion'])
+        ->name('notificaciones.configuracion');
+    Route::put('/notificaciones/configuracion', [\App\Http\Controllers\NotificacionController::class, 'actualizarConfiguracion'])
+        ->name('notificaciones.configuracion.actualizar');
 });

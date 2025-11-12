@@ -185,6 +185,13 @@ class NotificacionService
      */
     public function crearNotificacionInicioSesion(int $idUsuario, string $ip, Carbon $fecha): void
     {
+        // Verificar si el usuario tiene habilitadas las notificaciones de inicio de sesión
+        $usuario = Usuario::find($idUsuario);
+        
+        if (!$usuario || !$usuario->notificaciones_inicio_sesion) {
+            return; // No crear notificación si el usuario la tiene deshabilitada
+        }
+
         // Obtener información del dispositivo/navegador si está disponible
         $userAgent = request()->userAgent();
         $navegador = $this->obtenerNombreNavegador($userAgent);

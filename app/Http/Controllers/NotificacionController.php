@@ -127,4 +127,116 @@ class NotificacionController extends Controller
             'cantidad' => $cantidad,
         ]);
     }
+
+    /**
+     * Vista para enviar notificación a un usuario específico
+     */
+    public function enviarIndividual(): Response
+    {
+        $usuarios = \App\Models\Usuario::with(['rol', 'docente'])
+            ->orderBy('username')
+            ->get()
+            ->map(function ($usuario) {
+                return [
+                    'id' => $usuario->id,
+                    'username' => $usuario->username,
+                    'email' => $usuario->email,
+                    'rol' => $usuario->rol->nombre ?? 'Sin rol',
+                    'docente' => $usuario->docente ? [
+                        'nombre' => $usuario->docente->nombre,
+                        'apellido' => $usuario->docente->apellido,
+                    ] : null,
+                ];
+            });
+
+        return Inertia::render('Notificaciones/EnviarNotificacion', [
+            'usuarios' => $usuarios,
+        ]);
+    }
+
+    /**
+     * Enviar notificación a un usuario específico
+     */
+    public function enviarAUsuario(Request $request): JsonResponse
+    {
+        $request->validate([
+            'id_usuario' => 'required|exists:usuario,id',
+            'titulo' => 'required|string|max:200',
+            'mensaje' => 'required|string',
+        ]);
+
+        $cantidad = $this->notificacionService->crearMensajeAdmin(
+            [$request->id_usuario],
+            $request->titulo,
+            $request->mensaje,
+            auth()->id()
+        );
+
+        $usuario = \App\Models\Usuario::find($request->id_usuario);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Notificación enviada a {$usuario->username}",
+            'cantidad' => $cantidad,
+        ]);
+    }
+
+    /**
+     * Obtener lista de usuarios para notificaciones (API)
+     */
+    public function obtenerUsuarios(): JsonResponse
+    {
+        $usuarios = \App\Models\Usuario::with(['rol', 'docente'])
+            ->orderBy('username')
+            ->get()
+            ->map(function ($usuario) {
+                return [
+                    'id' => $usuario->id,
+                    'username' => $usuario->username,
+                    'email' => $usuario->email,
+                    'rol' => $usuario->rol->nombre ?? 'Sin rol',
+                    'nombre_completo' => $usuario->docente
+                        ? "{$usuario->docente->nombre} {$usuario->docente->apellido}"
+                        : $usuario->username,
+                ];
+            });
+
+        return response()->json(['usuarios' => $usuarios]);
+    }
+
+    /**
+     * Obtener configuración de notificaciones del usuario autenticado
+     */
+    public function obtenerConfiguracion(): JsonResponse
+    {
+        $user = auth()->user();
+
+        return response()->json([
+            'notificaciones_inicio_sesion' => $user->notificaciones_inicio_sesion ?? true,
+        ]);
+    }
+
+    /**
+     * Actualizar configuración de notificaciones del usuario autenticado
+     */
+    public function actualizarConfiguracion(Request $request): JsonResponse
+    {
+        $request->validate([
+            'notificaciones_inicio_sesion' => 'required|boolean',
+        ]);
+
+        $user = auth()->user();
+        $user->notificaciones_inicio_sesion = $request->notificaciones_inicio_sesion;
+        $user->save();
+
+        $mensaje = $request->notificaciones_inicio_sesion
+            ? 'Notificaciones de inicio de sesión activadas'
+            : 'Notificaciones de inicio de sesión desactivadas';
+
+        return response()->json([
+            'success' => true,
+            'message' => $mensaje,
+            'notificaciones_inicio_sesion' => $user->notificaciones_inicio_sesion,
+        ]);
+    }
 }
