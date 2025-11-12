@@ -332,6 +332,37 @@ class AsistenciaController extends Controller
     }
 
     /**
+     * Vista de reportes avanzados de horarios y asistencias
+     */
+    public function reportes()
+    {
+        $gestiones = Gestion::orderBy('año', 'desc')
+            ->orderBy('semestre', 'desc')
+            ->get()
+            ->map(function ($gestion) {
+                return [
+                    'id' => $gestion->id,
+                    'label' => $gestion->nombre_completo,
+                    'fecha_inicio' => $gestion->fecha_inicio->format('Y-m-d'),
+                    'fecha_fin' => $gestion->fecha_fin->format('Y-m-d'),
+                    'año' => $gestion->año,
+                    'semestre' => $gestion->semestre,
+                ];
+            });
+
+        $docentes = Docente::with('usuario')->orderBy('nombre')->get();
+        $aulas = \App\Models\Aula::orderBy('nombre')->get();
+        $grupos = \App\Models\Grupo::orderBy('nombre')->get();
+
+        return Inertia::render('Asistencias/Reportes', [
+            'gestiones' => $gestiones,
+            'docentes' => $docentes,
+            'aulas' => $aulas,
+            'grupos' => $grupos,
+        ]);
+    }
+
+    /**
      * Exportar reporte general de asistencias (Admin)
      */
     public function exportarReporte(Request $request)
@@ -365,6 +396,75 @@ class AsistenciaController extends Controller
         
         return \Excel::download(
             new \App\Exports\AsistenciasExport($asistencias, "Reporte {$gestion->nombre_completo}"),
+            $nombreArchivo
+        );
+    }
+
+    /**
+     * Exportar reporte avanzado con filtros de horarios
+     */
+    public function exportarReporteHorarios(Request $request)
+    {
+        $request->validate([
+            'id_gestion' => 'nullable|exists:gestion,id',
+            'fecha_inicio' => 'nullable|date',
+            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+            'codigo_docente' => 'nullable|exists:docente,codigo',
+            'id_aula' => 'nullable|exists:aula,id',
+            'id_grupo' => 'nullable|exists:grupo,id',
+        ]);
+        
+        $fechaInicio = $request->fecha_inicio ? Carbon::parse($request->fecha_inicio) : null;
+        $fechaFin = $request->fecha_fin ? Carbon::parse($request->fecha_fin) : null;
+        
+        $asistencias = $this->asistenciaService->obtenerReporteHorarios(
+            $request->id_gestion,
+            $fechaInicio,
+            $fechaFin,
+            $request->codigo_docente,
+            $request->id_aula,
+            $request->id_grupo
+        );
+        
+        // Construir nombre de archivo descriptivo
+        $partes = ['Reporte_Horarios'];
+        
+        if ($request->id_gestion) {
+            $gestion = \App\Models\Gestion::find($request->id_gestion);
+            $partes[] = $gestion->nombre_completo;
+        }
+        
+        if ($request->codigo_docente) {
+            $docente = Docente::where('codigo', $request->codigo_docente)->first();
+            $partes[] = $docente->nombre;
+        }
+        
+        if ($request->id_aula) {
+            $aula = \App\Models\Aula::find($request->id_aula);
+            $partes[] = "Aula_{$aula->nombre}";
+        }
+        
+        if ($request->id_grupo) {
+            $grupo = \App\Models\Grupo::find($request->id_grupo);
+            $partes[] = "Grupo_{$grupo->nombre}";
+        }
+        
+        if ($fechaInicio && $fechaFin) {
+            $partes[] = "{$fechaInicio->format('Y-m-d')}_a_{$fechaFin->format('Y-m-d')}";
+        }
+        
+        $partes[] = now()->format('Y-m-d_His');
+        $nombreArchivo = implode('_', $partes) . '.xlsx';
+        
+        BitacoraHelper::registrar(
+            'Exportación de Reporte de Horarios',
+            'asistencia',
+            null,
+            "Exportación de reporte de horarios con filtros personalizados"
+        );
+        
+        return \Excel::download(
+            new \App\Exports\AsistenciasHorariosExport($asistencias, "Reporte de Horarios"),
             $nombreArchivo
         );
     }

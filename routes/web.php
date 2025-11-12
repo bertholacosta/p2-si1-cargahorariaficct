@@ -267,9 +267,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/asistencias/estadisticas/{codigoDocente}', [\App\Http\Controllers\AsistenciaController::class, 'estadisticas'])
         ->middleware('permiso:asistencias.ver,asistencias.ver_todas')
         ->name('asistencias.estadisticas');
+    Route::get('/asistencias/reportes', [\App\Http\Controllers\AsistenciaController::class, 'reportes'])
+        ->middleware('permiso:asistencias.reportes')
+        ->name('asistencias.reportes');
     Route::get('/asistencias/exportar-reporte', [\App\Http\Controllers\AsistenciaController::class, 'exportarReporte'])
         ->middleware('permiso:asistencias.reportes')
         ->name('asistencias.exportar-reporte');
+    Route::get('/asistencias/exportar-reporte-horarios', [\App\Http\Controllers\AsistenciaController::class, 'exportarReporteHorarios'])
+        ->middleware('permiso:asistencias.reportes')
+        ->name('asistencias.exportar-reporte-horarios');
     Route::get('/asistencias/exportar-historial', [\App\Http\Controllers\AsistenciaController::class, 'exportarHistorialDocente'])
         ->middleware('permiso:asistencias.ver')
         ->name('asistencias.exportar-historial');

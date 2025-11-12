@@ -489,4 +489,72 @@ class AsistenciaService
         
         return $clasesAgrupadas;
     }
+
+    /**
+     * Obtener reporte avanzado de horarios y asistencias
+     * Con filtros por aula, docente, grupo, gestión y rango de fechas
+     */
+    public function obtenerReporteHorarios(
+        ?int $idGestion = null,
+        ?Carbon $fechaInicio = null,
+        ?Carbon $fechaFin = null,
+        ?string $codigoDocente = null,
+        ?int $idAula = null,
+        ?int $idGrupo = null
+    ) {
+        // Construir query base con relaciones
+        $query = Asistencia::with([
+            'docente',
+            'asignacion.grupoMateria.materia',
+            'asignacion.grupoMateria.grupo',
+            'asignacion.aula',
+            'asignacion.horario.hora',
+            'asignacion.horario.dia',
+            'asignacion.gestion',
+            'justificacion'
+        ]);
+
+        // Filtro por gestión
+        if ($idGestion) {
+            $query->whereHas('asignacion', function ($q) use ($idGestion) {
+                $q->where('id_gestion', $idGestion);
+            });
+        }
+
+        // Filtro por rango de fechas
+        if ($fechaInicio && $fechaFin) {
+            $query->whereBetween('fecha', [$fechaInicio, $fechaFin]);
+        } elseif ($fechaInicio) {
+            $query->where('fecha', '>=', $fechaInicio);
+        } elseif ($fechaFin) {
+            $query->where('fecha', '<=', $fechaFin);
+        }
+
+        // Filtro por docente
+        if ($codigoDocente) {
+            $query->where('id_docente', $codigoDocente);
+        }
+
+        // Filtro por aula
+        if ($idAula) {
+            $query->whereHas('asignacion', function ($q) use ($idAula) {
+                $q->where('id_aula', $idAula);
+            });
+        }
+
+        // Filtro por grupo
+        if ($idGrupo) {
+            $query->whereHas('asignacion.grupoMateria', function ($q) use ($idGrupo) {
+                $q->where('id_grupo', $idGrupo);
+            });
+        }
+
+        // Ordenar por fecha descendente y hora
+        $asistencias = $query->get()->sortByDesc(function ($asistencia) {
+            return $asistencia->fecha->format('Y-m-d') . ' ' . 
+                   ($asistencia->asignacion->horario->hora->hora_inicio ?? '00:00:00');
+        });
+
+        return $asistencias;
+    }
 }

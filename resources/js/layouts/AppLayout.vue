@@ -238,6 +238,7 @@ watch(() => page.props.flash, (flash: any) => {
 const allMenuItems = [
   { label: 'Inicio', icon: 'pi pi-home', route: '/', permiso: null },
   { label: 'Asistencias', icon: 'pi pi-check-circle', route: '/asistencias', permiso: 'asistencias.ver' },
+  { label: 'Reportes Asistencias', icon: 'pi pi-chart-bar', route: '/asistencias/reportes', permiso: 'asistencias.reportes' },
   { label: 'Asignaciones', icon: 'pi pi-calendar', route: '/asignaciones', permiso: 'asignaciones.ver' },
   { label: 'Gestiones', icon: 'pi pi-history', route: '/gestiones', permiso: 'gestiones.ver' },
   { label: 'Docentes', icon: 'pi pi-id-card', route: '/docentes', permiso: 'docentes.ver' },
