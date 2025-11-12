@@ -106,32 +106,57 @@ class AsistenciaController extends Controller
     public function registrar(Request $request)
     {
         $request->validate([
-            'id_asignacion' => 'required|exists:asignacion,id',
+            'id_asignacion' => 'required_without:ids_asignaciones',
+            'ids_asignaciones' => 'required_without:id_asignacion|array',
+            'ids_asignaciones.*' => 'exists:asignacion,id',
+            'estado' => 'nullable|in:Presente,Retraso',
         ]);
         
         $user = auth()->user();
         $docente = Docente::where('id_usuario', $user->id)->firstOrFail();
         
-        $resultado = $this->asistenciaService->registrarAsistencia(
-            $docente->codigo,
-            $request->id_asignacion,
-            null,
-            'Presente',
-            true // Es docente quien registra
-        );
+        $estado = $request->estado ?? 'Presente';
         
-        if ($resultado['success']) {
+        // Determinar si es una sola asignación o múltiples (grupo)
+        $idsAsignaciones = $request->ids_asignaciones ?? [$request->id_asignacion];
+        
+        $errores = [];
+        $exitosos = 0;
+        $asistenciaIds = [];
+        
+        foreach ($idsAsignaciones as $idAsignacion) {
+            $resultado = $this->asistenciaService->registrarAsistencia(
+                $docente->codigo,
+                $idAsignacion,
+                null,
+                $estado,
+                true // Es docente quien registra
+            );
+            
+            if ($resultado['success']) {
+                $exitosos++;
+                $asistenciaIds[] = $resultado['asistencia']->id;
+            } else {
+                $errores[] = $resultado['message'];
+            }
+        }
+        
+        if ($exitosos > 0) {
+            $mensaje = $exitosos === 1 
+                ? "Asistencia registrada como '{$estado}' correctamente." 
+                : "Asistencia registrada como '{$estado}' para {$exitosos} bloques de clase.";
+            
             BitacoraHelper::registrar(
                 'Asistencia Registrada',
                 'asistencia',
-                $resultado['asistencia']->id,
-                "Asistencia registrada para asignación #{$request->id_asignacion}"
+                $asistenciaIds[0],
+                $mensaje . " IDs: " . implode(', ', $idsAsignaciones)
             );
             
-            return redirect()->back()->with('success', $resultado['message']);
+            return redirect()->back()->with('success', $mensaje);
         }
         
-        return redirect()->back()->with('error', $resultado['message']);
+        return redirect()->back()->with('error', 'Error al registrar: ' . implode(', ', $errores));
     }
 
     /**

@@ -13,8 +13,9 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\SkipsErrors;
+use Maatwebsite\Excel\Concerns\WithBatchInserts;
 
-class DocentesImport implements ToCollection, WithHeadingRow, WithValidation, SkipsOnError
+class DocentesImport implements ToCollection, WithHeadingRow, SkipsOnError, WithBatchInserts
 {
     use SkipsErrors;
 
@@ -37,24 +38,42 @@ class DocentesImport implements ToCollection, WithHeadingRow, WithValidation, Sk
             try {
                 DB::beginTransaction();
 
+                // Convertir todos los valores a string para evitar problemas con números
+                $codigo = (string) ($row['codigo'] ?? '');
+                $nombre = (string) ($row['nombre'] ?? '');
+                $apellidos = (string) ($row['apellidos'] ?? '');
+                $ci = (string) ($row['ci'] ?? '');
+                $telefono = !empty($row['telefono']) ? (string) $row['telefono'] : null;
+                $emailRaw = !empty($row['email']) ? (string) $row['email'] : null;
+
+                // Validar campos obligatorios
+                if (empty($codigo) || empty($nombre) || empty($apellidos) || empty($ci)) {
+                    $this->resultados[] = [
+                        'fila' => $index + 2,
+                        'codigo' => $codigo ?: 'N/A',
+                        'estado' => 'error',
+                        'mensaje' => 'Faltan campos obligatorios (CODIGO, NOMBRE, APELLIDOS, CI)'
+                    ];
+                    DB::rollBack();
+                    continue;
+                }
+
                 // Generar username único
-                $username = $this->generarUsername($row['nombre'], $row['apellidos']);
+                $username = $this->generarUsername($nombre, $apellidos);
                 
                 // Generar email (si no viene en el archivo)
-                $email = !empty($row['email']) 
-                    ? $row['email'] 
-                    : $this->generarEmail($row['nombre'], $row['apellidos']);
+                $email = $emailRaw ?: $this->generarEmail($nombre, $apellidos);
                 
                 // Generar contraseña temporal: Primera letra del nombre + CI
-                $password = $this->generarPasswordTemporal($row['nombre'], $row['ci']);
+                $password = $this->generarPasswordTemporal($nombre, $ci);
 
                 // Verificar si el código ya existe
-                $docenteExistente = Docente::where('codigo', $row['codigo'])->first();
+                $docenteExistente = Docente::where('codigo', $codigo)->first();
                 
                 if ($docenteExistente) {
                     $this->resultados[] = [
                         'fila' => $index + 2, // +2 porque Excel empieza en 1 y hay header
-                        'codigo' => $row['codigo'],
+                        'codigo' => $codigo,
                         'estado' => 'omitido',
                         'mensaje' => 'El código ya existe'
                     ];
@@ -72,18 +91,18 @@ class DocentesImport implements ToCollection, WithHeadingRow, WithValidation, Sk
 
                 // Crear docente
                 $docente = Docente::create([
-                    'codigo' => $row['codigo'],
-                    'nombre' => trim($row['nombre']),
-                    'apellidos' => trim($row['apellidos']),
-                    'ci' => $row['ci'] ?? null,
-                    'telefono' => $row['telefono'] ?? null,
+                    'codigo' => $codigo,
+                    'nombre' => trim($nombre),
+                    'apellidos' => trim($apellidos),
+                    'ci' => $ci,
+                    'telefono' => $telefono,
                     'email' => $email,
                     'id_usuario' => $usuario->id,
                 ]);
 
                 $this->resultados[] = [
                     'fila' => $index + 2,
-                    'codigo' => $row['codigo'],
+                    'codigo' => $codigo,
                     'nombre' => $docente->nombre . ' ' . $docente->apellidos,
                     'username' => $username,
                     'email' => $email,
@@ -98,7 +117,7 @@ class DocentesImport implements ToCollection, WithHeadingRow, WithValidation, Sk
                 DB::rollBack();
                 $this->resultados[] = [
                     'fila' => $index + 2,
-                    'codigo' => $row['codigo'] ?? 'N/A',
+                    'codigo' => $codigo ?? 'N/A',
                     'estado' => 'error',
                     'mensaje' => $e->getMessage()
                 ];
@@ -107,32 +126,11 @@ class DocentesImport implements ToCollection, WithHeadingRow, WithValidation, Sk
     }
 
     /**
-     * Reglas de validación
+     * Tamaño del lote para inserciones
      */
-    public function rules(): array
+    public function batchSize(): int
     {
-        return [
-            'codigo' => 'required|string|max:20',
-            'nombre' => 'required|string|max:100',
-            'apellidos' => 'required|string|max:100',
-            'ci' => 'required|string|max:20',
-            'telefono' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-        ];
-    }
-
-    /**
-     * Mensajes de error personalizados
-     */
-    public function customValidationMessages()
-    {
-        return [
-            'codigo.required' => 'El código es obligatorio',
-            'nombre.required' => 'El nombre es obligatorio',
-            'apellidos.required' => 'Los apellidos son obligatorios',
-            'ci.required' => 'El CI es obligatorio (se usa para generar la contraseña)',
-            'email.email' => 'El formato del email no es válido',
-        ];
+        return 100;
     }
 
     /**

@@ -24,7 +24,7 @@
       </div>
 
       <!-- Tarjetas de estadísticas -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <Card class="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
           <template #content>
             <div class="flex items-center justify-between">
@@ -46,6 +46,19 @@
                 <p class="text-xs opacity-75 mt-1">{{ estadisticas.porcentaje_asistencia }}%</p>
               </div>
               <i class="pi pi-check-circle text-4xl opacity-30"></i>
+            </div>
+          </template>
+        </Card>
+
+        <Card class="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+          <template #content>
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm opacity-90">Retrasos</p>
+                <p class="text-3xl font-bold mt-1">{{ estadisticas.retrasos }}</p>
+                <p class="text-xs opacity-75 mt-1">{{ estadisticas.porcentaje_retrasos }}%</p>
+              </div>
+              <i class="pi pi-clock text-4xl opacity-30"></i>
             </div>
           </template>
         </Card>
@@ -103,15 +116,24 @@
             >
               <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div class="flex-1">
-                  <div class="flex items-center gap-2 mb-2">
+                  <div class="flex items-center gap-2 mb-2 flex-wrap">
                     <span class="text-lg font-semibold text-gray-800">
                       {{ clase.hora_inicio }} - {{ clase.hora_fin }}
                     </span>
+                    <span v-if="clase.es_grupo" class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+                      {{ clase.cantidad_bloques }} bloques
+                    </span>
                     <Tag
-                      v-if="clase.ya_registrada"
+                      v-if="clase.ya_registrada && clase.asistencia.estado === 'Presente'"
                       value="Registrada"
                       severity="success"
                       :icon="'pi pi-check'"
+                    />
+                    <Tag
+                      v-else-if="clase.ya_registrada && clase.asistencia.estado === 'Retraso'"
+                      value="Retraso"
+                      severity="warn"
+                      :icon="'pi pi-clock'"
                     />
                     <Tag
                       v-else-if="clase.puede_registrar"
@@ -120,9 +142,15 @@
                       :icon="'pi pi-clock'"
                     />
                     <Tag
+                      v-else-if="clase.puede_marcar_retraso"
+                      value="Ventana de Retraso"
+                      severity="warn"
+                      :icon="'pi pi-exclamation-triangle'"
+                    />
+                    <Tag
                       v-else
                       value="Fuera de tiempo"
-                      severity="warn"
+                      severity="secondary"
                     />
                   </div>
                   
@@ -130,13 +158,17 @@
                     {{ clase.asignacion.grupo_materia.materia.nombre }}
                   </p>
                   <div class="flex flex-wrap gap-3 mt-2 text-xs text-gray-600">
-                    <span>
+                    <span class="font-semibold text-blue-600">
                       <i class="pi pi-users mr-1"></i>
                       Grupo {{ clase.asignacion.grupo_materia.grupo.numero }}
                     </span>
                     <span>
                       <i class="pi pi-building mr-1"></i>
                       Aula {{ clase.asignacion.aula.nombre }}
+                    </span>
+                    <span v-if="clase.es_grupo" class="text-purple-600 font-medium">
+                      <i class="pi pi-link mr-1"></i>
+                      {{ clase.cantidad_bloques }} bloques consecutivos
                     </span>
                     <span v-if="!clase.ya_registrada">
                       <i class="pi pi-stopwatch mr-1"></i>
@@ -159,13 +191,22 @@
                     v-if="clase.puede_registrar && !clase.ya_registrada"
                     label="Registrar Asistencia"
                     icon="pi pi-check"
-                    @click="confirmarRegistro(clase)"
+                    @click="confirmarRegistro(clase, 'Presente')"
                     :loading="registrandoAsistencia"
                     severity="success"
                     class="w-full md:w-auto"
                   />
                   <Button
-                    v-if="clase.puede_registrar && !clase.ya_registrada"
+                    v-if="clase.puede_marcar_retraso && !clase.ya_registrada"
+                    label="Marcar Retraso"
+                    icon="pi pi-clock"
+                    @click="confirmarRegistro(clase, 'Retraso')"
+                    :loading="registrandoAsistencia"
+                    severity="warn"
+                    class="w-full md:w-auto"
+                  />
+                  <Button
+                    v-if="(clase.puede_registrar || clase.puede_marcar_retraso) && !clase.ya_registrada"
                     label="Generar QR"
                     icon="pi pi-qrcode"
                     @click="abrirGeneradorQR(clase.asignacion.id)"
@@ -183,7 +224,16 @@
                     class="w-full md:w-auto"
                   />
                   <Button
-                    v-else-if="!clase.puede_registrar && !clase.ya_registrada"
+                    v-else-if="clase.ya_registrada && clase.asistencia.estado === 'Retraso'"
+                    label="Retraso Registrado"
+                    icon="pi pi-clock"
+                    disabled
+                    severity="warn"
+                    outlined
+                    class="w-full md:w-auto"
+                  />
+                  <Button
+                    v-else-if="!clase.puede_registrar && !clase.puede_marcar_retraso && !clase.ya_registrada"
                     label="Tiempo Expirado"
                     icon="pi pi-clock"
                     disabled
@@ -301,23 +351,54 @@
       <!-- Dialog para confirmar registro -->
       <Dialog
         v-model:visible="dialogConfirmarVisible"
-        header="Confirmar Registro de Asistencia"
+        :header="estadoSeleccionado === 'Presente' ? 'Confirmar Registro de Asistencia' : 'Confirmar Registro de Retraso'"
         :modal="true"
         class="w-[95vw] sm:w-[450px]"
       >
         <div v-if="claseSeleccionada" class="space-y-3">
-          <p class="text-gray-700">¿Confirmas tu asistencia a la siguiente clase?</p>
+          <p class="text-gray-700">
+            {{ estadoSeleccionado === 'Presente' 
+                ? (claseSeleccionada.es_grupo 
+                    ? '¿Confirmas tu asistencia a los siguientes bloques de clase?' 
+                    : '¿Confirmas tu asistencia a la siguiente clase?')
+                : (claseSeleccionada.es_grupo 
+                    ? '¿Confirmas que llegaste con retraso a los siguientes bloques de clase?' 
+                    : '¿Confirmas que llegaste con retraso a la siguiente clase?')
+            }}
+          </p>
           
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p class="font-semibold text-gray-800">
+          <div 
+            class="border rounded-lg p-4"
+            :class="estadoSeleccionado === 'Presente' ? 'bg-blue-50 border-blue-200' : 'bg-orange-50 border-orange-200'"
+          >
+            <p class="font-semibold text-gray-800 text-lg">
               {{ claseSeleccionada.asignacion.grupo_materia.materia.nombre }}
             </p>
-            <p class="text-sm text-gray-600 mt-1">
-              Grupo {{ claseSeleccionada.asignacion.grupo_materia.grupo.numero }} • 
-              Aula {{ claseSeleccionada.asignacion.aula.nombre }}
+            <p class="text-sm text-blue-600 font-semibold mt-1">
+              <i class="pi pi-users mr-1"></i>
+              Grupo {{ claseSeleccionada.asignacion.grupo_materia.grupo.numero }}
             </p>
             <p class="text-sm text-gray-600">
+              <i class="pi pi-building mr-1"></i>
+              Aula {{ claseSeleccionada.asignacion.aula.nombre }}
+            </p>
+            <p class="text-sm text-gray-600 font-medium mt-2">
+              <i class="pi pi-clock mr-1"></i>
               {{ claseSeleccionada.hora_inicio }} - {{ claseSeleccionada.hora_fin }}
+            </p>
+            <div v-if="claseSeleccionada.es_grupo" class="mt-3 pt-3 border-t border-gray-300">
+              <p class="text-xs text-purple-600 font-medium">
+                <i class="pi pi-link mr-1"></i>
+                Clase agrupada: {{ claseSeleccionada.cantidad_bloques }} bloques consecutivos
+              </p>
+              <p class="text-xs text-gray-500 mt-1">
+                La asistencia se registrará para todos los bloques
+              </p>
+            </div>
+            <p v-if="estadoSeleccionado === 'Retraso'" class="text-xs text-orange-600 mt-2 pt-2 border-t">
+              <i class="pi pi-exclamation-triangle mr-1"></i>
+              Se registrará como retraso en el sistema
+              <span v-if="claseSeleccionada.es_grupo"> para todos los bloques</span>.
             </p>
           </div>
         </div>
@@ -331,11 +412,11 @@
               outlined
             />
             <Button
-              label="Confirmar Asistencia"
-              icon="pi pi-check"
+              :label="estadoSeleccionado === 'Presente' ? 'Confirmar Asistencia' : 'Confirmar Retraso'"
+              :icon="estadoSeleccionado === 'Presente' ? 'pi pi-check' : 'pi pi-clock'"
               @click="registrarAsistencia"
               :loading="registrandoAsistencia"
-              severity="success"
+              :severity="estadoSeleccionado === 'Presente' ? 'success' : 'warn'"
             />
           </div>
         </template>
@@ -479,7 +560,7 @@
       <!-- Modales de QR -->
       <QRGenerador
         v-model:visible="qrGeneradorVisible"
-        :idAsignacion="asignacionQRSeleccionada"
+        :idAsignacion="asignacionQRSeleccionada ?? undefined"
         @qr-generado="onQRGenerado"
       />
 
@@ -556,9 +637,13 @@ const justificacionForm = useForm({
   archivo: null as File | null,
 });
 
+// Estado seleccionado para registro
+const estadoSeleccionado = ref<'Presente' | 'Retraso'>('Presente');
+
 // Métodos
-const confirmarRegistro = (clase: any) => {
+const confirmarRegistro = (clase: any, estado: 'Presente' | 'Retraso' = 'Presente') => {
   claseSeleccionada.value = clase;
+  estadoSeleccionado.value = estado;
   dialogConfirmarVisible.value = true;
 };
 
@@ -567,15 +652,25 @@ const registrarAsistencia = () => {
 
   registrandoAsistencia.value = true;
 
+  // Si es un grupo, enviar todos los IDs de las asignaciones
+  const payload = claseSeleccionada.value.es_grupo
+    ? {
+        ids_asignaciones: claseSeleccionada.value.asignaciones.map((a: any) => a.id),
+        estado: estadoSeleccionado.value,
+      }
+    : {
+        id_asignacion: claseSeleccionada.value.asignacion.id,
+        estado: estadoSeleccionado.value,
+      };
+
   router.post(
     '/asistencias/registrar',
-    {
-      id_asignacion: claseSeleccionada.value.asignacion.id,
-    },
+    payload,
     {
       onSuccess: () => {
         dialogConfirmarVisible.value = false;
         claseSeleccionada.value = null;
+        estadoSeleccionado.value = 'Presente';
       },
       onFinish: () => {
         registrandoAsistencia.value = false;
@@ -653,6 +748,8 @@ const getEstadoSeverity = (estado: string) => {
   switch (estado) {
     case 'Presente':
       return 'success';
+    case 'Retraso':
+      return 'warn';
     case 'Falta':
       return 'danger';
     case 'Justificada':
@@ -668,6 +765,8 @@ const getEstadoIcon = (estado: string) => {
   switch (estado) {
     case 'Presente':
       return 'pi pi-check';
+    case 'Retraso':
+      return 'pi pi-clock';
     case 'Falta':
       return 'pi pi-times';
     case 'Justificada':

@@ -53,12 +53,22 @@ class AsistenciaService
         }
         
         // Validar ventana de tiempo si es el docente quien registra
-        if ($esDocente && $estado === 'Presente') {
+        if ($esDocente) {
             $validacion = $this->validarVentanaTiempo($asignacion, $fecha);
-            if (!$validacion['valido']) {
+            
+            // Si es Presente, debe estar en ventana normal
+            if ($estado === 'Presente' && !$validacion['valido']) {
                 return [
                     'success' => false,
                     'message' => $validacion['mensaje'],
+                ];
+            }
+            
+            // Si es Retraso, debe estar en ventana de retraso
+            if ($estado === 'Retraso' && !$validacion['puede_marcar_retraso']) {
+                return [
+                    'success' => false,
+                    'message' => 'No está en la ventana de tiempo válida para marcar retraso.',
                 ];
             }
         }
@@ -104,25 +114,45 @@ class AsistenciaService
         
         $horaClase = Carbon::parse($fecha->format('Y-m-d') . ' ' . $hora->hora_inicio);
         $minutosTolerancia = ConfiguracionAsistencia::minutosTolerancia();
+        $minutosVentanaRetraso = ConfiguracionAsistencia::minutosVentanaRetraso();
+        
         $horaLimite = $horaClase->copy()->addMinutes($minutosTolerancia);
+        $horaLimiteRetraso = $horaLimite->copy()->addMinutes($minutosVentanaRetraso);
         
         // Verificar si está dentro del rango
         if ($ahora->lt($horaClase)) {
             return [
                 'valido' => false,
+                'puede_marcar_retraso' => false,
                 'mensaje' => 'Aún no es hora de registrar asistencia. La clase inicia a las ' . $hora->hora_inicio,
             ];
         }
         
-        if ($ahora->gt($horaLimite)) {
+        // Si pasó la hora límite de tolerancia pero está dentro de la ventana de retraso
+        if ($ahora->gt($horaLimite) && $ahora->lte($horaLimiteRetraso)) {
             return [
                 'valido' => false,
-                'mensaje' => 'El tiempo para registrar asistencia ha expirado. Límite: ' . 
-                             $minutosTolerancia . ' minutos después del inicio.',
+                'puede_marcar_retraso' => true,
+                'mensaje' => 'El tiempo para registrar asistencia normal ha expirado, pero puede marcar retraso.',
+                'hora_limite_retraso' => $horaLimiteRetraso->format('H:i'),
             ];
         }
         
-        return ['valido' => true];
+        // Si ya pasó también la ventana de retraso
+        if ($ahora->gt($horaLimiteRetraso)) {
+            return [
+                'valido' => false,
+                'puede_marcar_retraso' => false,
+                'mensaje' => 'El tiempo para registrar asistencia ha expirado completamente. Límite de retraso: ' . 
+                             $horaLimiteRetraso->format('H:i'),
+            ];
+        }
+        
+        // Dentro de la ventana normal
+        return [
+            'valido' => true,
+            'puede_marcar_retraso' => false,
+        ];
     }
 
     /**
@@ -204,6 +234,7 @@ class AsistenciaService
         
         $total = $asistencias->count();
         $presentes = $asistencias->where('estado', 'Presente')->count();
+        $retrasos = $asistencias->where('estado', 'Retraso')->count();
         $faltas = $asistencias->where('estado', 'Falta')->count();
         $justificadas = $asistencias->where('estado', 'Justificada')->count();
         $licencias = $asistencias->where('estado', 'Licencia')->count();
@@ -211,10 +242,12 @@ class AsistenciaService
         return [
             'total' => $total,
             'presentes' => $presentes,
+            'retrasos' => $retrasos,
             'faltas' => $faltas,
             'justificadas' => $justificadas,
             'licencias' => $licencias,
             'porcentaje_asistencia' => $total > 0 ? round(($presentes / $total) * 100, 2) : 0,
+            'porcentaje_retrasos' => $total > 0 ? round(($retrasos / $total) * 100, 2) : 0,
             'porcentaje_faltas' => $total > 0 ? round(($faltas / $total) * 100, 2) : 0,
         ];
     }
@@ -334,44 +367,126 @@ class AsistenciaService
         $fecha = $fecha ?? Carbon::now();
         $nombreDia = $this->obtenerNombreDia($fecha->dayOfWeek);
         
+        // Obtener todas las asignaciones del día
         $asignaciones = Asignacion::with([
                 'horario.hora',
                 'horario.dia',
                 'grupoMateria.grupo',
                 'grupoMateria.materia',
-                'aula'
+                'aula',
+                'gestion'
             ])
             ->where('id_docente', $codigoDocente)
             ->whereHas('horario.dia', function ($q) use ($nombreDia) {
                 $q->where('nombre', $nombreDia);
             })
+            // Filtrar por gestión activa (fecha dentro del rango)
+            ->whereHas('gestion', function ($q) use ($fecha) {
+                $q->where('fecha_inicio', '<=', $fecha)
+                  ->where('fecha_fin', '>=', $fecha);
+            })
             ->get()
-            ->map(function ($asignacion) use ($fecha, $codigoDocente) {
-                $hora = $asignacion->horario->hora;
-                $horaInicio = Carbon::parse($fecha->format('Y-m-d') . ' ' . $hora->hora_inicio);
-                $minutosTolerancia = ConfiguracionAsistencia::minutosTolerancia();
-                $horaLimite = $horaInicio->copy()->addMinutes($minutosTolerancia);
-                
-                // Verificar si ya registró asistencia
+            ->sortBy(function ($asignacion) {
+                return $asignacion->horario->hora->hora_inicio;
+            });
+        
+        // Agrupar clases consecutivas por materia y grupo
+        $clasesAgrupadas = [];
+        $asignacionesAgrupadas = [];
+        
+        foreach ($asignaciones as $asignacion) {
+            $idGrupoMateria = $asignacion->id_grupo_materia;
+            $idAula = $asignacion->id_aula;
+            $horaInicio = $asignacion->horario->hora->hora_inicio;
+            $horaFin = $asignacion->horario->hora->hora_fin;
+            
+            // Buscar si hay un grupo al que se pueda agregar
+            $agregado = false;
+            foreach ($asignacionesAgrupadas as $key => &$grupo) {
+                // Verificar si es la misma materia, grupo y aula
+                if ($grupo['id_grupo_materia'] === $idGrupoMateria && 
+                    $grupo['id_aula'] === $idAula) {
+                    
+                    // Verificar si es consecutiva (la hora de inicio coincide con la hora fin del grupo)
+                    if ($horaInicio === $grupo['hora_fin']) {
+                        // Extender el grupo
+                        $grupo['hora_fin'] = $horaFin;
+                        $grupo['asignaciones'][] = $asignacion;
+                        $agregado = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Si no se agregó a ningún grupo, crear uno nuevo
+            if (!$agregado) {
+                $asignacionesAgrupadas[] = [
+                    'id_grupo_materia' => $idGrupoMateria,
+                    'id_aula' => $idAula,
+                    'hora_inicio' => $horaInicio,
+                    'hora_fin' => $horaFin,
+                    'asignaciones' => [$asignacion],
+                ];
+            }
+        }
+        
+        // Convertir grupos a formato de respuesta
+        foreach ($asignacionesAgrupadas as $grupo) {
+            $primeraAsignacion = $grupo['asignaciones'][0];
+            $hora = $primeraAsignacion->horario->hora;
+            
+            $horaInicio = Carbon::parse($fecha->format('Y-m-d') . ' ' . $grupo['hora_inicio']);
+            $minutosTolerancia = ConfiguracionAsistencia::minutosTolerancia();
+            $minutosVentanaRetraso = ConfiguracionAsistencia::minutosVentanaRetraso();
+            $horaLimite = $horaInicio->copy()->addMinutes($minutosTolerancia);
+            $horaLimiteRetraso = $horaLimite->copy()->addMinutes($minutosVentanaRetraso);
+            
+            // Verificar si ya registró asistencia para alguna de las asignaciones del grupo
+            $asistencias = [];
+            $todasRegistradas = true;
+            $algunaRegistrada = false;
+            
+            foreach ($grupo['asignaciones'] as $asig) {
                 $asistencia = Asistencia::where('id_docente', $codigoDocente)
-                    ->where('id_asignacion', $asignacion->id)
+                    ->where('id_asignacion', $asig->id)
                     ->where('fecha', $fecha->format('Y-m-d'))
                     ->first();
                 
-                return [
-                    'asignacion' => $asignacion,
-                    'puede_registrar' => now()->between($horaInicio, $horaLimite) && !$asistencia,
-                    'ya_registrada' => (bool) $asistencia,
-                    'asistencia' => $asistencia,
-                    'hora_inicio' => $hora->hora_inicio,
-                    'hora_fin' => $hora->hora_fin,
-                    'hora_limite_registro' => $horaLimite->format('H:i'),
-                ];
-            })
-            ->sortBy('hora_inicio')
-            ->values()
-            ->toArray();
+                if ($asistencia) {
+                    $asistencias[] = $asistencia;
+                    $algunaRegistrada = true;
+                } else {
+                    $todasRegistradas = false;
+                }
+            }
+            
+            $ahora = Carbon::now();
+            $puedeRegistrar = $ahora->between($horaInicio, $horaLimite) && !$algunaRegistrada;
+            $puedeMarcarRetraso = $ahora->gt($horaLimite) && 
+                                  $ahora->lte($horaLimiteRetraso) && 
+                                  !$algunaRegistrada;
+            
+            $clasesAgrupadas[] = [
+                'asignaciones' => collect($grupo['asignaciones'])->map(fn($a) => [
+                    'id' => $a->id,
+                    'id_grupo_materia' => $a->id_grupo_materia,
+                    'id_aula' => $a->id_aula,
+                ])->toArray(),
+                'asignacion' => $primeraAsignacion, // Para compatibilidad con el frontend
+                'es_grupo' => count($grupo['asignaciones']) > 1,
+                'cantidad_bloques' => count($grupo['asignaciones']),
+                'puede_registrar' => $puedeRegistrar,
+                'puede_marcar_retraso' => $puedeMarcarRetraso,
+                'ya_registrada' => $algunaRegistrada,
+                'todas_registradas' => $todasRegistradas,
+                'asistencia' => $asistencias[0] ?? null, // Primera asistencia encontrada
+                'hora_inicio' => $grupo['hora_inicio'],
+                'hora_fin' => $grupo['hora_fin'],
+                'hora_limite_registro' => $horaLimite->format('H:i'),
+                'hora_limite_retraso' => $horaLimiteRetraso->format('H:i'),
+            ];
+        }
         
-        return $asignaciones;
+        return $clasesAgrupadas;
     }
 }

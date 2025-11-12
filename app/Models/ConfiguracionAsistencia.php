@@ -59,6 +59,14 @@ class ConfiguracionAsistencia extends Model
     }
 
     /**
+     * Obtener minutos de ventana de retraso
+     */
+    public static function minutosVentanaRetraso(): int
+    {
+        return static::obtener('minutos_ventana_retraso', 60);
+    }
+
+    /**
      * Verificar si el auto-registro de faltas está habilitado
      */
     public static function autoFaltaHabilitado(): bool
