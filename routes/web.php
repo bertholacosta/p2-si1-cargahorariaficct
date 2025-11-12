@@ -267,6 +267,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/asistencias/estadisticas/{codigoDocente}', [\App\Http\Controllers\AsistenciaController::class, 'estadisticas'])
         ->middleware('permiso:asistencias.ver,asistencias.ver_todas')
         ->name('asistencias.estadisticas');
+    Route::get('/asistencias/exportar-reporte', [\App\Http\Controllers\AsistenciaController::class, 'exportarReporte'])
+        ->middleware('permiso:asistencias.reportes')
+        ->name('asistencias.exportar-reporte');
+    Route::get('/asistencias/exportar-historial', [\App\Http\Controllers\AsistenciaController::class, 'exportarHistorialDocente'])
+        ->middleware('permiso:asistencias.ver')
+        ->name('asistencias.exportar-historial');
     Route::post('/asistencias/faltas-automaticas', [\App\Http\Controllers\AsistenciaController::class, 'registrarFaltasAutomaticas'])
         ->middleware('permiso:asistencias.gestionar')
         ->name('asistencias.faltas-automaticas');

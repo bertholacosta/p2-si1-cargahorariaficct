@@ -79,16 +79,45 @@ class AsignacionesImport implements ToCollection, WithHeadingRow
     {
         $errores = [];
         $advertencias = [];
+        
+        // Limpiar y normalizar datos de entrada (manejar diferentes tipos)
         $datos = [
             'fila' => $numeroFila,
-            'codigo_materia' => $row['codigo_materia'] ?? '',
-            'numero_grupo' => $row['numero_grupo'] ?? '',
-            'codigo_docente' => $row['codigo_docente'] ?? '',
-            'dia' => $row['dia'] ?? '',
-            'hora_inicio' => $row['hora_inicio'] ?? '',
-            'hora_fin' => $row['hora_fin'] ?? '',
-            'codigo_aula' => $row['codigo_aula'] ?? '',
+            'codigo_materia' => $this->limpiarValor($row['codigo_materia'] ?? ''),
+            'numero_grupo' => $this->limpiarValor($row['numero_grupo'] ?? ''),
+            'codigo_docente' => $this->limpiarValor($row['codigo_docente'] ?? ''),
+            'dia' => $this->limpiarValor($row['dia'] ?? ''),
+            'hora_inicio' => $this->limpiarHora($row['hora_inicio'] ?? ''),
+            'hora_fin' => $this->limpiarHora($row['hora_fin'] ?? ''),
+            'codigo_aula' => $this->limpiarValor($row['codigo_aula'] ?? ''),
         ];
+        
+        // Validar que los campos requeridos no estén vacíos
+        $camposRequeridos = [
+            'codigo_materia' => 'CÓDIGO_MATERIA',
+            'numero_grupo' => 'NÚMERO_GRUPO',
+            'codigo_docente' => 'CÓDIGO_DOCENTE',
+            'dia' => 'DÍA',
+            'hora_inicio' => 'HORA_INICIO',
+            'hora_fin' => 'HORA_FIN',
+            'codigo_aula' => 'CÓDIGO_AULA',
+        ];
+        
+        foreach ($camposRequeridos as $campo => $nombre) {
+            if (empty($datos[$campo])) {
+                $errores[] = "El campo '{$nombre}' es requerido";
+            }
+        }
+        
+        // Si hay campos vacíos, retornar inmediatamente
+        if (!empty($errores)) {
+            return [
+                'valido' => false,
+                'errores' => $errores,
+                'advertencias' => $advertencias,
+                'datos' => $datos,
+            ];
+        }
 
         // Validar materia
         $materia = Materia::where('codigo', $datos['codigo_materia'])->first();
@@ -368,6 +397,87 @@ class AsignacionesImport implements ToCollection, WithHeadingRow
 
     public function headingRow(): int
     {
-        return 4; // Los encabezados están en la fila 4
+        return 1; // Los encabezados ahora están en la fila 1
+    }
+
+    /**
+     * Limpiar y normalizar valores (maneja diferentes tipos de datos)
+     */
+    private function limpiarValor($valor): string
+    {
+        // Si es null, retornar string vacío
+        if ($valor === null) {
+            return '';
+        }
+        
+        // Si es booleano, convertir a string
+        if (is_bool($valor)) {
+            return $valor ? '1' : '0';
+        }
+        
+        // Si es numérico, convertir a string
+        if (is_numeric($valor)) {
+            return (string) $valor;
+        }
+        
+        // Si es objeto o array, intentar convertir a string
+        if (is_object($valor) || is_array($valor)) {
+            return '';
+        }
+        
+        // Si es string, limpiar espacios y convertir a mayúsculas/trim
+        return trim((string) $valor);
+    }
+
+    /**
+     * Limpiar y normalizar horas (formato HH:MM)
+     */
+    private function limpiarHora($valor): string
+    {
+        // Si es null, retornar string vacío
+        if ($valor === null) {
+            return '';
+        }
+        
+        // Si es numérico (puede ser timestamp de Excel)
+        if (is_numeric($valor)) {
+            // Excel almacena tiempos como fracciones de día
+            if ($valor > 0 && $valor < 1) {
+                // Convertir fracción a horas y minutos
+                $totalMinutes = round($valor * 24 * 60);
+                $hours = floor($totalMinutes / 60);
+                $minutes = $totalMinutes % 60;
+                return sprintf('%02d:%02d', $hours, $minutes);
+            }
+            // Si es un número entero, podría ser una hora
+            return sprintf('%02d:00', (int)$valor);
+        }
+        
+        // Si es un objeto DateTime (Excel puede devolver esto)
+        if ($valor instanceof \DateTime || $valor instanceof \DateTimeInterface) {
+            return $valor->format('H:i');
+        }
+        
+        // Si es string, limpiar y validar formato
+        $valor = trim((string) $valor);
+        
+        // Si contiene AM/PM, convertir a formato 24h
+        if (stripos($valor, 'am') !== false || stripos($valor, 'pm') !== false) {
+            try {
+                $dt = \DateTime::createFromFormat('h:i A', $valor);
+                if ($dt) {
+                    return $dt->format('H:i');
+                }
+            } catch (\Exception $e) {
+                // Continuar con el valor original
+            }
+        }
+        
+        // Verificar si ya tiene formato HH:MM o H:MM
+        if (preg_match('/^(\d{1,2}):(\d{2})$/', $valor, $matches)) {
+            return sprintf('%02d:%02d', (int)$matches[1], (int)$matches[2]);
+        }
+        
+        return $valor;
     }
 }

@@ -542,8 +542,30 @@ const irADiasNoLaborables = () => {
 };
 
 const exportarReporte = () => {
-  // Implementar exportación
-  console.log('Exportar reporte');
+  if (!filtros.value.id_gestion) {
+    alert('Por favor, selecciona una gestión antes de exportar.');
+    return;
+  }
+
+  // Construir la URL con parámetros
+  const params = new URLSearchParams({
+    id_gestion: String(filtros.value.id_gestion),
+  });
+
+  if (filtros.value.codigo_docente) {
+    params.append('codigo_docente', filtros.value.codigo_docente);
+  }
+
+  if (filtros.value.fecha_inicio) {
+    params.append('fecha_inicio', format(filtros.value.fecha_inicio, 'yyyy-MM-dd'));
+  }
+
+  if (filtros.value.fecha_fin) {
+    params.append('fecha_fin', format(filtros.value.fecha_fin, 'yyyy-MM-dd'));
+  }
+
+  // Descargar el archivo
+  window.location.href = `/asistencias/exportar-reporte?${params.toString()}`;
 };
 
 const formatearFecha = (fecha: string, formato: string = 'DD/MM/YYYY') => {

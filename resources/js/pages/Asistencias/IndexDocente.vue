@@ -735,8 +735,25 @@ const cambiarGestion = () => {
 };
 
 const exportarHistorial = () => {
-  // Implementar exportación
-  console.log('Exportar historial');
+  if (!gestionSeleccionada.value) {
+    alert('Por favor, selecciona una gestión antes de exportar.');
+    return;
+  }
+
+  // Construir la URL con parámetros
+  const params = new URLSearchParams({
+    id_gestion: String(gestionSeleccionada.value),
+  });
+
+  // Agregar fechas del mes actual por defecto
+  const fechaInicio = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd');
+  const fechaFin = format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd');
+  
+  params.append('fecha_inicio', fechaInicio);
+  params.append('fecha_fin', fechaFin);
+
+  // Descargar el archivo
+  window.location.href = `/asistencias/exportar-historial?${params.toString()}`;
 };
 
 const formatearFecha = (fecha: string, formato: string = 'DD/MM/YYYY') => {

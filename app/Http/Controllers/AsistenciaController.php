@@ -330,4 +330,86 @@ class AsistenciaController extends Controller
             'message' => "Se registraron {$faltasRegistradas} faltas automáticas.",
         ]);
     }
+
+    /**
+     * Exportar reporte general de asistencias (Admin)
+     */
+    public function exportarReporte(Request $request)
+    {
+        $request->validate([
+            'id_gestion' => 'required|exists:gestion,id',
+            'fecha_inicio' => 'nullable|date',
+            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+            'codigo_docente' => 'nullable|exists:docente,codigo',
+        ]);
+        
+        $fechaInicio = $request->fecha_inicio ? Carbon::parse($request->fecha_inicio) : null;
+        $fechaFin = $request->fecha_fin ? Carbon::parse($request->fecha_fin) : null;
+        
+        $asistencias = $this->asistenciaService->obtenerReporteGeneral(
+            $request->id_gestion,
+            $fechaInicio,
+            $fechaFin,
+            $request->codigo_docente
+        );
+        
+        $gestion = \App\Models\Gestion::find($request->id_gestion);
+        $nombreArchivo = "Reporte_Asistencias_{$gestion->nombre_completo}_" . now()->format('Y-m-d_His') . ".xlsx";
+        
+        BitacoraHelper::registrar(
+            'Exportación de Reporte de Asistencias',
+            'asistencia',
+            null,
+            "Exportación de reporte de asistencias para la gestión {$gestion->nombre_completo}"
+        );
+        
+        return \Excel::download(
+            new \App\Exports\AsistenciasExport($asistencias, "Reporte {$gestion->nombre_completo}"),
+            $nombreArchivo
+        );
+    }
+
+    /**
+     * Exportar historial de asistencias del docente
+     */
+    public function exportarHistorialDocente(Request $request)
+    {
+        $user = auth()->user();
+        $docente = Docente::where('id_usuario', $user->id)->first();
+        
+        if (!$docente) {
+            return response()->json(['error' => 'No se encontró información del docente.'], 404);
+        }
+        
+        $request->validate([
+            'id_gestion' => 'required|exists:gestion,id',
+            'fecha_inicio' => 'nullable|date',
+            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+        ]);
+        
+        $fechaInicio = $request->fecha_inicio ? Carbon::parse($request->fecha_inicio) : Carbon::now()->startOfMonth();
+        $fechaFin = $request->fecha_fin ? Carbon::parse($request->fecha_fin) : Carbon::now()->endOfMonth();
+        
+        $asistencias = $this->asistenciaService->obtenerAsistenciasDocente(
+            $docente->codigo,
+            $fechaInicio,
+            $fechaFin,
+            $request->id_gestion
+        );
+        
+        $gestion = \App\Models\Gestion::find($request->id_gestion);
+        $nombreArchivo = "Mis_Asistencias_{$docente->codigo}_{$gestion->año}-{$gestion->semestre}_" . now()->format('Y-m-d_His') . ".xlsx";
+        
+        BitacoraHelper::registrar(
+            'Exportación de Historial de Asistencias',
+            'asistencia',
+            null,
+            "Docente {$docente->nombre} exportó su historial de asistencias"
+        );
+        
+        return \Excel::download(
+            new \App\Exports\AsistenciasExport($asistencias, "Mis Asistencias {$gestion->nombre_completo}"),
+            $nombreArchivo
+        );
+    }
 }
